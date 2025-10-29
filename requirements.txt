@@ -1,0 +1,12 @@
+numpy
+PyOpenGL
+opencv-python
+matplotlib
+open3d
+#glob
+#time
+#math
+#operator
+opencv-contrib-python
+scikit-image
+PySDL2

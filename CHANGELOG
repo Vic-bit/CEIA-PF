@@ -1,0 +1,16 @@
+# CHANGELOG
+
+Todas las modificaciones importantes del proyecto se documentan en este archivo.
+
+## [0.1.0] - 2025-10-28
+### Añadido
+- Estructura inicial del proyecto.
+- Scripts para extracción de características SIFT clásico.
+- Notebooks de análisis exploratorio de datos (EDA).
+- Archivos de configuración y utilidades.
+
+### Cambiado
+- Organización de carpetas para separar módulos y datos.
+
+### Eliminado
+- N/A
