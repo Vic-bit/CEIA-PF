@@ -19,8 +19,7 @@ class VisualSLAM:
         self.map = Map()
         self.display = display
 
-        calib_file_path = CALIB_PATH
-        calib_lines = read_calibration_file(calib_file_path)
+        calib_lines = read_calibration_file(CALIB_PATH)
         self.K = extract_intrinsic_matrix(calib_lines, camera_id=CAMERA_ID)
 
         # Timer sin límite de fps

@@ -17,7 +17,7 @@ def read_calibration_file(calib_file_path: str) -> list:
         lines = f.readlines()
     return lines
 
-def extract_intrinsic_matrix(calib_lines: list, camera_id = CAMERA_ID) -> np.ndarray:
+def extract_intrinsic_matrix(calib_lines: list, camera_id: str = CAMERA_ID) -> np.ndarray:
     """
     Extrae la matriz intrínseca K de las líneas del archivo de calibración
     
