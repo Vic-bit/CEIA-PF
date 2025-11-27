@@ -18,7 +18,7 @@ def get_lightglue(device):
     global _lg_matcher
     if _lg_matcher is None:
         print("Inicializando LightGlue (una sola vez)...")
-        _lg_matcher = KF.LightGlueMatcher("sift").eval().to('device')
+        _lg_matcher = KF.LightGlueMatcher("sift").eval().to(device)
     return _lg_matcher
 
 def get_opencv_sift(nfeatures=SIFT_N_FEATURES):
