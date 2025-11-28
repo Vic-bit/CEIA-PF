@@ -2,7 +2,6 @@
 
 Proyecto Final de Estudios - CEIA  
 Autor: Víctor David Silva
-Fecha: Octubre 2025
 
 ## Descripción
 
@@ -12,6 +11,13 @@ Esta versión corresponde a la implementación clásica basada en SIFT (Scale-In
 ## Estructura del Proyecto
 
 - `src/sift_classic/`: Implementación principal del sistema SLAM con SIFT clásico.
+  - `main.py`: Script principal de ejecución.
+  - `features.py`: Extracción y emparejamiento de características SIFT.
+  - `pointmap.py`: Estructuras de datos para el mapa y puntos 3D.
+  - `display.py`: Visualización de trayectoria, puntos y métricas.
+  - `utils.py`: Utilidades para calibración y manejo de datos.
+  - `config.py`: Parámetros de configuración.
+- `src/sift_kornia/`: Implementación del sistema SLAM con SIFT usando Kornia.
   - `main.py`: Script principal de ejecución.
   - `features.py`: Extracción y emparejamiento de características SIFT.
   - `pointmap.py`: Estructuras de datos para el mapa y puntos 3D.
@@ -61,6 +67,6 @@ Se abrirá una interfaz gráfica mostrando la imagen actual, la trayectoria esti
 ## Estados de avance de las versiones
 
 [X] SIFT classic
-[ ] SIFT kornia
+[X] SIFT kornia
 [ ] SIFT classic en Raspberry Pi 
 [ ] SIFT kornia en Raspberry Pi
