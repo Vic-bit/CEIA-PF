@@ -3,7 +3,9 @@ import cv2
 import numpy as np
 from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform
-from sift_rpi.config import SIFT_N_FEATURES
+from sift_rpi.config import (
+    SIFT_N_FEATURES, MIN_PIXEL_DISP, MIN_MATCHES
+)
 
 # Inicializar matriz identidad de 4x4
 IRt = np.eye(4)
@@ -135,7 +137,6 @@ def match_frames(f1,f2):
     idx1   = np.array(idx1, dtype=np.int32)
     idx2   = np.array(idx2, dtype=np.int32)
 
-    MIN_PIXEL_DISP = 1.0
     # Extraemos las coordenadas en píxel de los keypoints
     pts1_pix = f1.kps[np.array(idx1)]
     pts2_pix = f2.kps[np.array(idx2)]
@@ -148,7 +149,7 @@ def match_frames(f1,f2):
 ##--------- Nuevo para error de no movimiento ---------
 
     #assert len(ret) > 8
-    if len(ret) <= 8:
+    if len(ret) <= MIN_MATCHES:
         #print("No se encontraron suficientes Matches, saltanto el frame")
         return np.array([]), np.array([]), np.eye(4)
 

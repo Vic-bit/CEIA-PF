@@ -22,10 +22,12 @@ from time import sleep
 from rpi_hardware_pwm import HardwarePWM
 import gpiod
 
+from config import (
+    IN1, IN2, IN3, IN4, PWM_CHIP, PWM_CH0, PWM_CH1, FREQ, INIT_DUTY,
+    WIDTH, HEIGHT, F, MIN_TRANSLATION, TURN_REDUCTION
+)
+
 # — motor & PWM setup —
-IN1, IN2, IN3, IN4 = 5, 6, 23, 24
-PWM_CHIP, PWM_CH0, PWM_CH1 = 2, 0, 1
-FREQ, INIT_DUTY = 1000, 50
 pwmENA = HardwarePWM(pwm_channel=PWM_CH0, hz=FREQ, chip=PWM_CHIP)
 pwmENB = HardwarePWM(pwm_channel=PWM_CH1, hz=FREQ, chip=PWM_CHIP)
 pwmENA.start(INIT_DUTY)
@@ -42,11 +44,10 @@ signal.signal(signal.SIGINT, lambda *args: sys.exit(0))
 signal.signal(signal.SIGTERM, lambda *args: sys.exit(0))
 
 # — VO parameters —
-W, H = 320, 240
+WIDTH, HEIGHT = 320, 240
 F = 450
-K = np.array([[F,0,W//2],[0,F,H//2],[0,0,1]])
-MIN_TRANSLATION = 0.15
-TURN_REDUCTION = 20   # % que reduces al girar
+K = np.array([[F,0,WIDTH//2],[0,F,HEIGHT//2],[0,0,1]])
+
 mapp = Map()
 trajectory_x, trajectory_z = [], []
 
