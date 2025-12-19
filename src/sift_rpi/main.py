@@ -24,7 +24,8 @@ import gpiod
 
 from config import (
     IN1, IN2, IN3, IN4, PWM_CHIP, PWM_CH0, PWM_CH1, FREQ, INIT_DUTY,
-    WIDTH, HEIGHT, F, MIN_TRANSLATION, TURN_REDUCTION
+    WIDTH, HEIGHT, F, MIN_TRANSLATION, TURN_REDUCTION, SKIP_RATE, GUI_UPDATE_MS, 
+    SLIDER_MIN, SLIDER_MAX, PLOT_X_MIN, PLOT_X_MAX, PLOT_Z_MIN, PLOT_Z_MAX
 )
 
 # — motor & PWM setup —
@@ -44,8 +45,6 @@ signal.signal(signal.SIGINT, lambda *args: sys.exit(0))
 signal.signal(signal.SIGTERM, lambda *args: sys.exit(0))
 
 # — VO parameters —
-WIDTH, HEIGHT = 320, 240
-F = 450
 K = np.array([[F,0,WIDTH//2],[0,F,HEIGHT//2],[0,0,1]])
 
 mapp = Map()
@@ -73,7 +72,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        self.skip_rate    = 6    # procesar 1 de cada 5
+        self.skip_rate    = SKIP_RATE    # procesar 1 de cada 5
         self._skip_counter = 0
 
         #self.timer = QtCore.QTimer(self)
@@ -113,8 +112,8 @@ class MainWindow(QMainWindow):
         self.pg_plot.enableAutoRange(False, False)      # (x, y)
 
         # FIJAR LÍMITES
-        self.pg_plot.setXRange(-50, 50, padding=0)      # xmin, xmax
-        self.pg_plot.setYRange(  0,100, padding=0)      # ymin, ymax
+        self.pg_plot.setXRange(PLOT_X_MIN, PLOT_X_MAX, padding=0)      # xmin, xmax
+        self.pg_plot.setYRange(PLOT_Z_MIN, PLOT_Z_MAX, padding=0)      # ymin, ymax
 
         # esta será tu "línea de trayectoria"
         self.curve = self.pg_plot.plot(pen='y', symbol='o')
@@ -137,14 +136,14 @@ class MainWindow(QMainWindow):
 
         # slider for ENA
         self.sliderA = QSlider(Qt.Horizontal)
-        self.sliderA.setRange(0,100)
+        self.sliderA.setRange(SLIDER_MIN,SLIDER_MAX)
         self.sliderA.setValue(INIT_DUTY)
         self.sliderA.valueChanged.connect(self.on_sliderA)
         form.addRow("Adjust ENA:", self.sliderA)
 
         # slider for ENB
         self.sliderB = QSlider(Qt.Horizontal)
-        self.sliderB.setRange(0,100)
+        self.sliderB.setRange(SLIDER_MIN,SLIDER_MAX)
         self.sliderB.setValue(INIT_DUTY)
         self.sliderB.valueChanged.connect(self.on_sliderB)
         form.addRow("Adjust ENB:", self.sliderB)

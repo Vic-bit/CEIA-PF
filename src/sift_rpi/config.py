@@ -11,6 +11,7 @@ WIDTH = 320
 HEIGHT = 240
 F = 450
 
+# Motion
 MIN_TRANSLATION = 0.15
 TURN_REDUCTION = 20   # % que reduce al girar
 
@@ -20,5 +21,21 @@ MIN_MATCHES = 8
 
 # Raspberry Pi I/O
 IN1, IN2, IN3, IN4 = 5, 6, 23, 24
-PWM_CHIP, PWM_CH0, PWM_CH1 = 2, 0, 1
-FREQ, INIT_DUTY = 1000, 50
+PWM_CHIP = 2
+PWM_CH0 = 0
+PWM_CH1 = 1
+FREQ =1000
+INIT_DUTY = 50
+
+# Display
+SKIP_RATE = 6
+GUI_UPDATE_MS = 30
+
+SLIDER_MIN = 0
+SLIDER_MAX = 100
+
+# Plot limits
+PLOT_X_MIN = -50
+PLOT_X_MAX = 50
+PLOT_Z_MIN = 0
+PLOT_Z_MAX = 100
