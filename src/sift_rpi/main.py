@@ -153,10 +153,10 @@ class MainWindow(QMainWindow):
         #self.ax.legend(); self.ax.grid(True)
 
         # — camera —
-        self.picam2 = Picamera2()
-        cfg = self.picam2.create_preview_configuration(main={"format":"RGB888","size":(W,H)})
-        self.picam2.configure(cfg); self.picam2.start()
-        sleep(1)
+        #self.picam2 = Picamera2()
+        #cfg = self.picam2.create_preview_configuration(main={"format":"RGB888","size":(W,H)})
+        #self.picam2.configure(cfg); self.picam2.start()
+        #sleep(1)
 
         # — timer for updates —
         self.timer = QtCore.QTimer(self)
@@ -197,7 +197,7 @@ class MainWindow(QMainWindow):
             return
         self._skip_counter = 0
 
-        rgb = self.picam2.capture_array()
+        #rgb = self.picam2.capture_array()
         bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
         # — VO processing —
@@ -273,7 +273,7 @@ def main():
     atexit.register(w.cleanup)  # registra cleanup de la instancia
     w.show()
     app.exec_()
-    w.picam2.close()
+    #w.picam2.close()
 
 if __name__ == "__main__":
     main()
