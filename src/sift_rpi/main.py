@@ -23,23 +23,10 @@ from rpi_hardware_pwm import HardwarePWM
 import gpiod
 
 from config import (
-    IN1, IN2, IN3, IN4, PWM_CHIP, PWM_CH0, PWM_CH1, FREQ, INIT_DUTY,
     WIDTH, HEIGHT, F, MIN_TRANSLATION, TURN_REDUCTION, SKIP_RATE, GUI_UPDATE_MS, 
     SLIDER_MIN, SLIDER_MAX, PLOT_X_MIN, PLOT_X_MAX, PLOT_Z_MIN, PLOT_Z_MAX
 )
 
-# — motor & PWM setup —
-pwmENA = HardwarePWM(pwm_channel=PWM_CH0, hz=FREQ, chip=PWM_CHIP)
-pwmENB = HardwarePWM(pwm_channel=PWM_CH1, hz=FREQ, chip=PWM_CHIP)
-pwmENA.start(INIT_DUTY)
-pwmENB.start(INIT_DUTY)
-
-chip = gpiod.Chip('gpiochip4')
-lines = {}
-for pin in (IN1, IN2, IN3, IN4):
-    l = chip.get_line(pin)
-    l.request(consumer="motor", type=gpiod.LINE_REQ_DIR_OUT)
-    lines[pin] = l
 
 signal.signal(signal.SIGINT, lambda *args: sys.exit(0))
 signal.signal(signal.SIGTERM, lambda *args: sys.exit(0))
@@ -204,49 +191,6 @@ class MainWindow(QMainWindow):
     def adjustDutyB(self, d):  
         self.sliderB.setValue(self.sliderB.value()+d)
 
-    def forward(self):
-        print("forward")
-        lines[IN1].set_value(1); lines[IN2].set_value(0)
-        lines[IN3].set_value(1); lines[IN4].set_value(0)
-        pwmENA.change_duty_cycle(50)
-        pwmENB.change_duty_cycle(45)
-        self.lbl_command.setText("Forward")
-    def backward(self):
-        print("backward")
-        lines[IN1].set_value(0); lines[IN2].set_value(1)
-        lines[IN3].set_value(0); lines[IN4].set_value(1)
-        pwmENA.change_duty_cycle(50)
-        pwmENB.change_duty_cycle(45)
-        self.lbl_command.setText("Backward")
-    def turn_right(self):
-        print("turn right")
-        lines[IN1].set_value(1); lines[IN2].set_value(0)
-        lines[IN3].set_value(0); lines[IN4].set_value(1)
-        #newB = max(0, self.sliderB.value() - TURN_REDUCTION)
-        #pwmENA.change_duty_cycle(self.sliderA.value())
-        pwmENA.change_duty_cycle(40)
-        pwmENB.change_duty_cycle(40)
-        #self.lbl_command.setText("Turn Right")
-        #self.lbl_dutyA.setText(f"{self.sliderA.value()}%")
-        #self.lbl_dutyB.setText(f"{newB}%")
-        self.lbl_command.setText("Turn right")
-    def turn_left(self):
-        print("turn left")
-        lines[IN1].set_value(0); lines[IN2].set_value(1)
-        lines[IN3].set_value(1); lines[IN4].set_value(0)
-        #newA = max(0, self.sliderA.value() - TURN_REDUCTION)
-        pwmENA.change_duty_cycle(40)
-        pwmENB.change_duty_cycle(40)
-        #pwmENB.change_duty_cycle(self.sliderB.value())
-        #self.lbl_command.setText("Turn Left")
-        #self.lbl_dutyA.setText(f"{newA}%")  # actualizamos indicador
-        #self.lbl_dutyB.setText(f"{self.sliderB.value()}%")
-        self.lbl_command.setText("Turn left")
-    def stop_motors(self):
-        print("stop motors")
-        for p in (IN1,IN2,IN3,IN4): lines[p].set_value(0)
-        self.lbl_command.setText("Stop motors")
-
     def update_frame(self):
         self._skip_counter += 1
         if self._skip_counter < self.skip_rate:
@@ -321,13 +265,6 @@ class MainWindow(QMainWindow):
         print("Cleanup before exit...")
         self.cleanup()
         event.accept()  # permite que se cierre la ventana
-
-    def cleanup(self):
-        self.stop_motors()
-        pwmENA.stop()
-        pwmENB.stop()
-        chip.close()
-
 
 
 def main():
