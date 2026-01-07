@@ -83,8 +83,8 @@ class MainWindow(QMainWindow):
 
         grid.setColumnStretch(0, 3)
         grid.setColumnStretch(1, 1)
-
- def _create_control_panel(self):
+    
+    def _create_control_panel(self):
         """Crea el panel de controles y estado."""
         control = QGroupBox("Control & Status")
         form = QFormLayout()

@@ -4,6 +4,7 @@ import atexit
 import signal
 import cv2
 import numpy as np
+from PyQt5.QtWidgets import QApplication
 
 from camera import Camera
 from display import MainWindow
@@ -84,7 +85,7 @@ def main():
 
     # Qt application
     app = QApplication(sys.argv)
-    window = MainWindow(ccamera, motor_ctrl, process_vo, trayectory)
+    window = MainWindow(camera, motor_ctrl, process_vo, trayectory)
     
     # Registrar limpieza al salir
     atexit.register(window.cleanup)

@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform
-from sift_rpi.config import (
+from config import (
     SIFT_N_FEATURES, MIN_PIXEL_DISP, MIN_MATCHES
 )
 
