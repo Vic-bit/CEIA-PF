@@ -46,13 +46,9 @@ Las 4 versiones a desarrollar son:
 - pyqtgraph
 - numpy
 
-Instala las dependencias con:
+## SIFT classic
 
-```bash
-pip install -r requirements.txt
-```
-
-## Ejecución
+### Ejecución
 
 1. Asegúrate de tener el dataset en la ruta `dataset/00/` con imágenes y archivo de calibración. El cual se obtiene de https://www.cvlibs.net/datasets/kitti/
 2. Modifica los parámetros en `src/sift_classic/config.py` si es necesario.
@@ -63,6 +59,42 @@ python src/sift_classic/main.py
 ```
 
 Se abrirá una interfaz gráfica mostrando la imagen actual, la trayectoria estimada y los puntos 3D reconstruidos.
+
+## SIFT con Raspberry Pi
+### Instalación 
+
+Se debe instalar primero desde el sistema, es decir, sin ningún venv activado:
+```bash
+pip install opencv-python-headless
+sudo apt install python3-libgpiod python3-lgpio -y
+sudo apt install python3-picamera2 -y
+```
+
+Crear el entorno virtual con acceso al sistema:
+```bash
+python3 -m venv --system-site-packages voenv
+```
+
+Activar el entorno virtual:
+```bash
+source voenv/bin/activate
+```
+
+Instala las dependencias con:
+```bash 
+pip install -r requirements.txt
+```
+
+### Ejecución SIFT Raspberry Pi
+
+Debido a que se dificultó con la interfaz gráfica al tratar de ejecutarlos desde SSH, se debe acceder a la Raspberry Pi mediante VNC Viewer. Una vez conectado en la terminal se deben ejecutar estos comandos
+```bash 
+cd ~/PF/Github/CEIA-PF/src/sift_rpi
+source voenv/bin/activate
+python main.py
+```
+
+Una vez hecho esto, se ejecutará el programa en la Raspberry Pi.
 
 ## Estados de avance de las versiones
 

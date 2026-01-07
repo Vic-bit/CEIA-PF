@@ -1,5 +1,4 @@
-numpy
-opencv-python
-opencv-contrib-python
-PyQt5
-pyqtgraph
+numpy<2
+scikit-image
+matplotlib
+rpi-hardware-pwm

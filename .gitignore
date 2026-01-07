@@ -2,3 +2,11 @@
 
 /dataset/00
 /src/sift_kornia_copy
+
+src/sift_classic/voenv
+src/sift_kornia/voenv
+src/sift_rpi/voenv
+
+src/sift_classic/__pycache__
+src/sift_kornia/__pycache__
+src/sift_rpi/__pycache__
