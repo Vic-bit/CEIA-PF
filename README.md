@@ -25,7 +25,7 @@ Esta versión corresponde a la implementación clásica basada en SIFT (Scale-In
   - `utils.py`: Utilidades para calibración y manejo de datos.
   - `config.py`: Parámetros de configuración.
 - `src/sift_rpi/`: Implementación del sistema SLAM con SIFT usando Raspberry Pi.
-- `dataset/`: Secuencias de imágenes y archivos de calibración (formato KITTI).
+- `/`: Secuencias de imágenes y archivos de calibración (formato KITTI).
 - `notebooks/`: Análisis exploratorio y pruebas.
 - `outputs/`: Resultados y visualizaciones generadas.
 
@@ -33,7 +33,7 @@ Esta versión corresponde a la implementación clásica basada en SIFT (Scale-In
 
 El proyecto cuenta con tres versiones, cada una explorando diferentes técnicas de extracción de características y frameworks.  
 
-Las 4 versiones a desarrollar son:
+Las 3 versiones a desarrollar son:
 - SIFT classic
 - SIFT kornia
 - SIFT Raspberry Pi 

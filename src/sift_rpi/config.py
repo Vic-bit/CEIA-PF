@@ -4,7 +4,7 @@
 SIFT_N_FEATURES = 350
 
 # Path
-CALIB_PATH = "/home/visualslam/PF/Github/CEIA-PF/src/sift_rpi/config"
+CALIB_PATH = "/home/visualslam/PF/Github/CEIA-PF/src/sift_rpi/calibration"
 
 # Camera
 WIDTH = 320
@@ -34,7 +34,7 @@ PWM_TURN_DUTY = 40
 
 
 # Display
-SKIP_RATE = 6
+SKIP_RATE = 3
 GUI_UPDATE_MS = 30
 
 SLIDER_MIN = 0
