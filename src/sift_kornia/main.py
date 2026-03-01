@@ -7,6 +7,7 @@ import torch
 import kornia
 import os
 import signal
+import numpy as np
 
 # Agregar directorio padre (src/) al path para importar benchmark_logger
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)).replace('/sift_kornia', ''))
@@ -18,7 +19,7 @@ from features import Frame, match_frames, add_ones
 from pointmap import Map
 from display import Display
 from utils import read_calibration_file, extract_intrinsic_matrix
-from config import WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID, ENABLE_LOGGING, OUTPUT_DIR
+from config import WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID, ENABLE_LOGGING, OUTPUT_DIR, MAX_FRAMES
 from benchmark_logger import BenchmarkLogger
 
 import warnings
@@ -67,7 +68,7 @@ class VisualSLAM:
         self.timer.start(0)
     
     def export_logger(self):
-        """Exporta el logger y guarda análisis cualitativo (imágenes)"""
+        """Exporta el logger y guarda análisis cualitativo (imágenes) + trayectoria"""
         if self.logger is not None:
             import os
             output_file = os.path.join(OUTPUT_DIR, "sift_kornia.json")
@@ -76,10 +77,52 @@ class VisualSLAM:
         # Guardar imágenes para análisis cualitativo
         self.display.save_camera_frame(OUTPUT_DIR)
         self.display.save_trajectory_plot(OUTPUT_DIR)
+        
+        # Guardar trayectoria estimada para validación contra Ground Truth
+        self._save_trajectory(OUTPUT_DIR)
+    
+    def _save_trajectory(self, output_dir):
+        """Guarda la trayectoria estimada en formato JSON para validación"""
+        import os
+        import json
+        from datetime import datetime
+        
+        # Obtener datos de trayectoria
+        trajectory_data = self.display.get_trajectory_data()
+        
+        # Crear estructura de datos
+        output_data = {
+            "metadata": {
+                "implementation": "sift_kornia",
+                "timestamp": datetime.now().isoformat(),
+                "num_frames": len(trajectory_data['x'])
+            },
+            "trajectory": {
+                "x": trajectory_data['x'],
+                "z": trajectory_data['z']
+            },
+            "statistics": {
+                "num_frames": len(trajectory_data['x']),
+                "total_distance": float(np.sum(np.sqrt(np.diff(trajectory_data['x'])**2 + np.diff(trajectory_data['z'])**2)))
+            }
+        }
+        
+        # Guardar
+        output_file = os.path.join(output_dir, "sift_kornia_trajectory.json")
+        with open(output_file, 'w') as f:
+            json.dump(output_data, f, indent=2)
+        
+        print(f"✓ Trayectoria estimada guardada: {output_file}")
 
     def update_frame(self):
-        # Detener al terminar
+        # Detener al terminar o llegar a MAX_FRAMES
         if self.frame_idx >= len(self.image_files):
+            self.timer.stop()
+            self.export_logger()
+            return
+        
+        # Limitar a MAX_FRAMES si está configurado
+        if MAX_FRAMES is not None and self.frame_idx >= MAX_FRAMES:
             self.timer.stop()
             self.export_logger()
             return
@@ -224,6 +267,12 @@ def filter_points_behind_camera(points, cam_pose,
 
 if __name__ == "__main__":
     files = sorted(glob.glob(IMG_PATH))
+    
+    # Limitar cantidad de frames si MAX_FRAMES está configurado
+    if MAX_FRAMES is not None and MAX_FRAMES > 0:
+        files = files[:MAX_FRAMES]
+        print(f"[Info] Limitado a {MAX_FRAMES} frames de {len(sorted(glob.glob(IMG_PATH)))}")
+    
     app = QApplication(sys.argv)
     
     display = Display(WIDTH, HEIGHT)

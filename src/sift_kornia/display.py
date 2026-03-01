@@ -179,6 +179,13 @@ class Display(QMainWindow):
         
         print(f"✓ Gráfico de trayectoria guardado: {filename}")
         return str(filename)
+    
+    def get_trajectory_data(self):
+        """Retorna los datos de la trayectoria (x, z)"""
+        return {
+            'x': self.traj_x.copy(),
+            'z': self.traj_z.copy()
+        }
         # Ejecutar callback cuando se cierre la ventana (también por X)
         if self.on_close_callback:
             self.on_close_callback()

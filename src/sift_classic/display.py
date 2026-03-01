@@ -167,3 +167,10 @@ class Display(QMainWindow):
         
         print(f"✓ Gráfico de trayectoria guardado: {filename}")
         return str(filename)
+    
+    def get_trajectory_data(self):
+        """Retorna los datos de la trayectoria (x, z)"""
+        return {
+            'x': self.traj_x.copy(),
+            'z': self.traj_z.copy()
+        }

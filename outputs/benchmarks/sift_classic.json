@@ -1,13 +1,13 @@
 {
   "metadata": {
     "implementation": "sift_classic",
-    "timestamp": "2026-02-23T23:54:40.617327",
-    "total_frames": 166
+    "timestamp": "2026-03-01T14:36:19.127579",
+    "total_frames": 250
   },
   "summary": {
-    "total_time": 13.8,
-    "avg_fps": 12.03,
+    "total_time": 174.11,
+    "avg_fps": 1.44,
     "avg_matches": 75.1,
-    "total_ram_mb": 358.5
+    "total_ram_mb": 368.3
   }
 }
