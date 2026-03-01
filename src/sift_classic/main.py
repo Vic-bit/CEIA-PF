@@ -2,14 +2,36 @@
 import sys
 import cv2
 import glob
+import time
 import numpy as np
+import os
+import signal
+
+# Agregar directorio padre (src/) al path para importar benchmark_logger
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)).replace('/sift_classic', ''))
+
 from features import Frame, match_frames, add_ones
 from pointmap import Map
 from display import Display
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 from utils import read_calibration_file, extract_intrinsic_matrix
-from config import (WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID)
+from config import (WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID, ENABLE_LOGGING, OUTPUT_DIR)
+from benchmark_logger import BenchmarkLogger
+
+# Variable global para almacenar la instancia SLAM
+_slam_instance = None
+
+def signal_handler(sig, frame):
+    """Manejador para Ctrl+C que exporta el logger antes de salir"""
+    global _slam_instance
+    if _slam_instance:
+        _slam_instance.export_logger()
+        print("\n[Info] Benchmark exportado antes de salir (Ctrl+C).")
+    sys.exit(0)
+
+# Registrar el manejador de señales
+signal.signal(signal.SIGINT, signal_handler)
 
 
 class VisualSLAM:
@@ -21,17 +43,34 @@ class VisualSLAM:
 
         calib_lines = read_calibration_file(CALIB_PATH)
         self.K = extract_intrinsic_matrix(calib_lines, camera_id=CAMERA_ID)
+        
+        # Logger (si está habilitado)
+        self.logger = BenchmarkLogger("sift_classic") if ENABLE_LOGGING else None
 
         # Timer sin límite de fps
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(0)
+    
+    def export_logger(self):
+        """Exporta el logger y guarda análisis cualitativo (imágenes)"""
+        if self.logger is not None:
+            import os
+            output_file = os.path.join(OUTPUT_DIR, "sift_classic.json")
+            self.logger.export_summary(output_file)
+        
+        # Guardar imágenes para análisis cualitativo
+        self.display.save_camera_frame(OUTPUT_DIR)
+        self.display.save_trajectory_plot(OUTPUT_DIR)
 
     def update_frame(self):
         # Al procesar todas las imágenes se detiene el programa
         if self.frame_idx >= len(self.image_files):
             self.timer.stop()
+            self.export_logger()
             return
+
+        frame_start_time = time.perf_counter()
 
         # Si no encuentra la imagen, se salta el índice
         img = cv2.imread(self.image_files[self.frame_idx])
@@ -43,10 +82,12 @@ class VisualSLAM:
         img = cv2.resize(img, (WIDTH, HEIGHT))
         frame = Frame(self.map, img, self.K)
         
+        num_matches = 0
         if frame.id > 0:
             f1, f2 = self.map.frames[-1], self.map.frames[-2]
             try:
                 idx1, idx2, Rt = match_frames(f1, f2)
+                num_matches = len(idx1)
 
                 f1.pose = np.dot(f2.pose, Rt)
 
@@ -92,6 +133,11 @@ class VisualSLAM:
         else:
             # Primer frame sin keypoints previos
             self.display.update_frame_display(img, np.array([]))
+
+        # Logging de benchmark
+        if self.logger is not None:
+            frame_elapsed_ms = (time.perf_counter() - frame_start_time) * 1000
+            self.logger.log_frame(frame.id, num_matches, frame_elapsed_ms)
 
         self.frame_idx += 1
 
@@ -152,7 +198,10 @@ if __name__ == "__main__":
     display = Display(WIDTH, HEIGHT)
     display.show()
     
-    # Crear sistema SLAM
-    slam = VisualSLAM(files, display)
+    # Crear sistema SLAM y asignarlo a la variable global
+    _slam_instance = VisualSLAM(files, display)
+    
+    # Conectar callback de cierre de display para exportar logger
+    display.set_on_close_callback(_slam_instance.export_logger)
     
     sys.exit(app.exec_())

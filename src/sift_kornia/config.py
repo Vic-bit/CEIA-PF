@@ -9,3 +9,7 @@ CAMERA_ID = 'P0'
 CALIB_PATH = "../../dataset/00/calib.txt"
 IMG_PATH = "../../dataset/00/image_0/*.png"
 
+# Logging
+ENABLE_LOGGING = True
+OUTPUT_DIR = "../../outputs/benchmarks"
+

@@ -1,0 +1,13 @@
+{
+  "metadata": {
+    "implementation": "sift_kornia",
+    "timestamp": "2026-02-23T23:53:04.936293",
+    "total_frames": 26
+  },
+  "summary": {
+    "total_time": 6.72,
+    "avg_fps": 3.87,
+    "avg_matches": 52.1,
+    "total_ram_mb": 972.5
+  }
+}
