@@ -9,6 +9,8 @@ import signal
 
 # Agregar directorio padre (src/) al path para importar benchmark_logger
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)).replace('/sift_classic', ''))
+# Agregar el directorio actual (sift_classic/) para importaciones locales
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from features import Frame, match_frames, add_ones
 from pointmap import Map

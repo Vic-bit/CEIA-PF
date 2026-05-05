@@ -1,8 +1,3 @@
-"""
-Módulo de logging para benchmarking comparativo SIFT Classic vs SIFT Kornia.
-Registra métricas en tiempo real y exporta resumen en JSON.
-"""
-
 import json
 import psutil
 import time

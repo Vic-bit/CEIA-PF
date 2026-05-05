@@ -5,15 +5,16 @@ Utiliza alineación Sim(3) (7-DoF) para SLAM monocular sin escala absoluta
 Calcula: ATE (Absolute Trajectory Error), RPE (Relative Pose Error)
 Reporta: Factor de escala, matrices de transformación
 """
+import sys
+from pathlib import Path
+
+# Agregar raíz del proyecto al path ANTES de importar
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import json
 import numpy as np
-from pathlib import Path
-from trajectory_comparison import TrajectoryComparison, load_slam_trajectory
-import sys
-
-# Importar configuración
-sys.path.insert(0, 'src')
-from sift_classic.config import MAX_FRAMES
+from src.analysis import TrajectoryComparison, load_slam_trajectory
+from src.sift_classic.config import MAX_FRAMES
 
 
 def main():
@@ -24,14 +25,15 @@ def main():
     print("Alineación: Sim(3) - 7 Grados de Libertad (R, t, s)")
     print("="*80)
     
-    # Verificar archivos necesarios
+    # Rutas
     gt_file = Path('outputs/benchmarks/ground_truth_trajectory.json')
     classic_file = Path('outputs/benchmarks/sift_classic_trajectory.json')
     kornia_file = Path('outputs/benchmarks/sift_kornia_trajectory.json')
     
+    # Verificar ground truth
     if not gt_file.exists():
         print(f"❌ Error: {gt_file} no existe")
-        print("   Ejecuta primero: python ground_truth_analysis.py")
+        print("   Ejecuta primero: python scripts/run_ground_truth.py")
         return
     
     # Crear comparador
@@ -75,13 +77,13 @@ def main():
     
     # Visualizar y exportar
     print(f"\n📊 Calculando métricas de error...")
-    comparator.plot_comparison('outputs/benchmarks/trajectory_comparison_aligned.png')
+    comparator.plot_comparison('outputs/benchmarks/slam_analysis_complete.png')
     comparator.print_summary()
     comparator.export_results('outputs/benchmarks/trajectory_evaluation_sim3.json')
     
     print(f"\n✓ Evaluación completada")
-    print(f"  - Gráfica:     outputs/benchmarks/trajectory_comparison_aligned.png")
-    print(f"  - Resultados:  outputs/benchmarks/trajectory_evaluation_sim3.json")
+    print(f"  - Gráficos:   outputs/benchmarks/slam_analysis_complete.png")
+    print(f"  - Resultados: outputs/benchmarks/trajectory_evaluation_sim3.json")
     print("="*80 + "\n")
 
 

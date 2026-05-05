@@ -1,6 +1,6 @@
 """
 Ground Truth Analysis - Lectura de poses.txt y times.txt del dataset KITTI
-para crear ground truth y calcular métricas de error (ATE, RPE)
+Módulo reutilizable para análisis de trayectorias ground truth
 
 La variable MAX_FRAMES debe coincidir con la de config.py para análisis consistente
 """
@@ -8,26 +8,25 @@ La variable MAX_FRAMES debe coincidir con la de config.py para análisis consist
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import Tuple, List
+from typing import Tuple, Dict
 import json
-from datetime import datetime
 
-# CONFIGURACIÓN: Cambiar MAX_FRAMES para que coincida con config.py
-# None = usar todos los frames, o especificar número máximo (ej: 200)
-MAX_FRAMES = 250
+
 class GroundTruthAnalyzer:
     """Análisis de poses ground truth del dataset KITTI"""
     
-    def __init__(self, poses_file: str, times_file: str):
+    def __init__(self, poses_file: str, times_file: str, max_frames: int = 250):
         """
         Inicializa con rutas a poses.txt y times.txt
         
         Args:
             poses_file: Ruta a dataset/00/poses.txt
             times_file: Ruta a dataset/00/times.txt
+            max_frames: Número máximo de frames a cargar (None = todos)
         """
         self.poses_file = Path(poses_file)
         self.times_file = Path(times_file)
+        self.max_frames = max_frames
         
         self.poses = None  # Lista de matrices 4x4
         self.times = None  # Timestamps
@@ -45,9 +44,9 @@ class GroundTruthAnalyzer:
         poses_data = np.loadtxt(self.poses_file)
         num_frames = poses_data.shape[0]
         
-        # Limitar a MAX_FRAMES si está configurado
-        if MAX_FRAMES is not None:
-            num_frames = min(num_frames, MAX_FRAMES)
+        # Limitar a max_frames si está configurado
+        if self.max_frames is not None:
+            num_frames = min(num_frames, self.max_frames)
             poses_data = poses_data[:num_frames]
         
         # Convertir de 3x4 (vectorizado) a 4x4
@@ -62,7 +61,7 @@ class GroundTruthAnalyzer:
         # Leer times.txt
         times_data = np.loadtxt(self.times_file)
         # Limitar también los tiempos
-        if MAX_FRAMES is not None:
+        if self.max_frames is not None:
             times_data = times_data[:num_frames]
         self.times = times_data
         
@@ -70,8 +69,8 @@ class GroundTruthAnalyzer:
         self.trajectory = np.array([pose[:3, 3] for pose in self.poses])
         
         print(f"   ✓ Cargados {num_frames} frames")
-        if MAX_FRAMES is not None:
-            print(f"   ℹ Limitado a MAX_FRAMES={MAX_FRAMES}")
+        if self.max_frames is not None:
+            print(f"   ℹ Limitado a max_frames={self.max_frames}")
         print(f"   ✓ Trayectoria: {self.trajectory.shape}")
     
     def get_trajectory_topdown(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -130,7 +129,7 @@ class GroundTruthAnalyzer:
         print(f"\n✓ Gráfico superior guardado: {output_file}")
         return str(output_path)
     
-    def calculate_ate(self, estimated_trajectory: np.ndarray) -> dict:
+    def calculate_ate(self, estimated_trajectory: np.ndarray) -> Dict:
         """
         Calcula Absolute Trajectory Error (ATE)
         
@@ -167,7 +166,7 @@ class GroundTruthAnalyzer:
         return results
     
     def calculate_rpe(self, estimated_trajectory: np.ndarray, 
-                     delta_frames: int = 5) -> dict:
+                     delta_frames: int = 5) -> Dict:
         """
         Calcula Relative Pose Error (RPE)
         
@@ -200,7 +199,7 @@ class GroundTruthAnalyzer:
         
         return results
     
-    def get_statistics(self) -> dict:
+    def get_statistics(self) -> Dict:
         """Obtiene estadísticas de la trayectoria ground truth"""
         x, z = self.get_trajectory_topdown()
         
@@ -256,56 +255,3 @@ class GroundTruthAnalyzer:
         
         print(f"✓ Trayectoria ground truth exportada: {output_file}")
         return str(output_path)
-
-
-def main():
-    """Demostración de uso"""
-    
-    print("="*70)
-    print("GROUND TRUTH ANALYSIS - KITTI Dataset 00")
-    print("="*70)
-    
-    # Rutas relativas a este script
-    poses_file = "dataset/00/poses.txt"
-    times_file = "dataset/00/times.txt"
-    
-    # Crear analizador
-    analyzer = GroundTruthAnalyzer(poses_file, times_file)
-    
-    # Estadísticas
-    print("\n📊 ESTADÍSTICAS DE TRAYECTORIA GROUND TRUTH")
-    print("="*70)
-    stats = analyzer.get_statistics()
-    
-    print(f"\nDataset:")
-    print(f"  • Frames: {stats['num_frames']}")
-    print(f"  • Duración: {stats['duration']:.2f} segundos")
-    print(f"  • FPS: {stats['avg_fps']:.2f}")
-    
-    print(f"\nTrayectoria:")
-    print(f"  • Distancia total: {stats['total_distance']:.2f} metros")
-    print(f"  • Velocidad promedio: {stats['avg_velocity']:.2f} m/s")
-    
-    print(f"\nBoundary Box:")
-    bounds = stats['trajectory_bounds']
-    print(f"  • X: [{bounds['x_min']:.2f}, {bounds['x_max']:.2f}]")
-    print(f"  • Y: [{bounds['y_min']:.2f}, {bounds['y_max']:.2f}]")
-    print(f"  • Z: [{bounds['z_min']:.2f}, {bounds['z_max']:.2f}]")
-    
-    # Generar visualización
-    print("\n📈 GENERANDO VISUALIZACIONES")
-    print("="*70)
-    analyzer.plot_topdown_view("outputs/benchmarks/ground_truth_topdown.png")
-    
-    # Exportar como JSON
-    analyzer.export_trajectory_json("outputs/benchmarks/ground_truth_trajectory.json")
-    
-    print("\n" + "="*70)
-    print("✓ ANÁLISIS COMPLETADO")
-    print("="*70)
-    
-    return analyzer
-
-
-if __name__ == "__main__":
-    analyzer = main()

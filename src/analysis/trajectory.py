@@ -1,13 +1,9 @@
 """
 Comparación de trayectorias estimadas vs Ground Truth
+Módulo reutilizable para análisis de odometría visual
+
 Calcula ATE (Absolute Trajectory Error) y RPE (Relative Pose Error)
 con alineación Sim(3) - Similitud 3D con factor de escala uniforme
-
-Para SLAM monocular sin escala absoluta, se requiere alineación porque:
-- SLAM monocular produce trayectorias en unidades arbitrarias
-- Ground truth KITTI está en metros reales
-- Usamos Sim(3) uniforme siguiendo protocolo oficial KITTI
-- Transformación: P' = s * R @ P + t (un único factor s)
 """
 
 import numpy as np
@@ -15,14 +11,11 @@ import json
 import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
-from scipy.spatial.transform import Rotation as R_scipy
 
-# Importar funciones de alineación reutilizables
-from alignment.alignment import (
+# Importar funciones de alineación
+from src.alignment.alignment import (
     align_sim3_umeyama,
     apply_sim3_transform,
-    align_nonuniform_scale,
-    apply_nonuniform_scale_transform
 )
 
 
@@ -46,7 +39,7 @@ class TrajectoryComparison:
             )
         ])
         self.results = {}
-        self.alignment_params = {}  # Almacenar R, t, s para cada método
+        self.alignment_params = {}
     
     def _load_ground_truth(self):
         """Carga ground truth desde JSON"""
@@ -56,7 +49,7 @@ class TrajectoryComparison:
         return data
     
     def add_estimated_trajectory(self, name: str, estimated_trajectory: np.ndarray) -> dict:
-        """Agrega trayectoria estimada..."""
+        """Agrega trayectoria estimada y calcula métricas"""
         
         # Ajustar longitudes
         min_len = min(len(self.gt_trajectory), len(estimated_trajectory))
@@ -66,49 +59,16 @@ class TrajectoryComparison:
         # Alineación Sim(3)
         R, t, s, alignment_error = align_sim3_umeyama(est, gt)
         
-        # ========== AGREGAR ESTO AQUÍ (DEBUG) ==========
-        print(f"\n{'='*60}")
-        print(f"DEBUG: {name}")
-        print(f"{'='*60}")
-        
-        # Distancias totales SIN alinear
-        dist_est = np.sum(np.linalg.norm(est[1:] - est[:-1], axis=1))
-        dist_gt = np.sum(np.linalg.norm(gt[1:] - gt[:-1], axis=1))
-        
-        print(f"Distancia total estimada (sin alinear): {dist_est:.2f}")
-        print(f"Distancia total GT: {dist_gt:.2f}")
-        print(f"Ratio (estimada/GT): {dist_est/dist_gt:.4f}")
-        print(f"Escala Sim(3) calculada: {s:.4f}")
-        print(f"Escala esperada (1/ratio): {1/(dist_est/dist_gt):.4f}")
-        
-        # Verificar coherencia
-        if abs(s - 1/(dist_est/dist_gt)) > 0.1:
-            print("⚠️  WARNING: Escala Sim(3) NO coincide con ratio de distancias")
-            print("   → Fórmula de escala probablemente invertida")
-        else:
-            print("✓ Escala coherente")
-        
-        # Verificar qué trayectoria es más grande
-        if dist_est > dist_gt:
-            print(f"📏 Tu trayectoria es {dist_est/dist_gt:.2f}x MÁS GRANDE que GT")
-        else:
-            print(f"📏 Tu trayectoria es {dist_gt/dist_est:.2f}x MÁS PEQUEÑA que GT")
-        
-        print(f"{'='*60}\n")
-        # ========== FIN DEBUG ==========
-        
         # Almacenar parámetros de alineación
         self.alignment_params[name] = {
             'R': R,
             't': t,
-            's': s,  # Factor de escala único
+            's': s,
             'alignment_error': alignment_error
         }
         
         # Aplicar transformación a trayectoria estimada
         est_aligned = apply_sim3_transform(est, R, t, s)
-        
-        # ============ CALCULAR MÉTRICAS SOBRE TRAYECTORIA ALINEADA ============
         
         # ATE: Error absoluto de posición
         ate_errors = np.linalg.norm(est_aligned - gt, axis=1)
@@ -145,12 +105,10 @@ class TrajectoryComparison:
             'num_frames_compared': min_len,
             'trajectory_aligned': est_aligned,
             'trajectory_original': est,
-            # Parámetros de alineación
-            'scale_factor': float(s),  # Factor de escala único
+            'scale_factor': float(s),
             'alignment_rmse': float(alignment_error)
         }
         
-        # Retornar factor de escala
         return {**ate_stats, **rpe_stats, 'scale_factor': float(s)}
     
     def plot_comparison(self, output_file: str = None) -> str:
@@ -180,7 +138,6 @@ class TrajectoryComparison:
         
         colors = {'SIFT Classic': 'r', 'SIFT Kornia': 'g'}
         for name, data in self.results.items():
-            # Usar trayectoria ALINEADA
             traj = data['trajectory_aligned']
             ax.plot(traj[:, 0], traj[:, 2], '--', linewidth=2, 
                    label=f"{name} (aligned, s={data['scale_factor']:.3f})", 
@@ -270,7 +227,7 @@ class TrajectoryComparison:
             print(f"  ║   → SLAM × {s:.4f} ≈ metros reales")
             print(f"  ║ Alignment RMSE:  {data['alignment_rmse']:.6f} m")
             print(f"  ║ Frames comparados: {data['num_frames_compared']}")
-            print(f"  ║ Método: Alineación Sim(3) (Horn 1987)")
+            print(f"  ║ Método: Alineación Sim(3) (Umeyama 1991)")
             print(f"  ╚════════════════════════════════════════════════════╝")
             
             print(f"\n  ATE (Absolute Trajectory Error):")
@@ -349,7 +306,6 @@ class TrajectoryComparison:
         print(f"✓ Resultados exportados: {output_file}")
 
 
-# Funciones auxiliares para cargar trayectorias desde SLAM
 def load_slam_trajectory(slam_json_file: str) -> np.ndarray:
     """
     Carga trayectoria del archivo JSON del SLAM
@@ -381,55 +337,3 @@ def load_slam_trajectory(slam_json_file: str) -> np.ndarray:
         return np.array(data['poses'])
     else:
         raise ValueError(f"No se encontró trayectoria en {slam_json_file}")
-
-
-def main():
-    """Ejemplo de uso"""
-    
-    print("\n" + "="*70)
-    print("TRAJECTORY COMPARISON - SLAM vs Ground Truth")
-    print("="*70)
-    
-    # Crear comparador
-    gt_file = "outputs/benchmarks/ground_truth_trajectory.json"
-    
-    if not Path(gt_file).exists():
-        print(f"⚠️  {gt_file} no existe")
-        print("Ejecuta: python ground_truth_analysis.py")
-        return
-    
-    comparator = TrajectoryComparison(gt_file)
-    
-    # Aquí se agregarían las trayectorias estimadas por los métodos SLAM
-    # Ejemplo (datos simulados para demostración):
-    
-    # Simular trayectorias con pequeños errores
-    print("\n📊 Cargando trayectorias estimadas...")
-    
-    gt_traj = comparator.gt_trajectory
-    
-    # SIFT Classic: pequeños errores aleatorios
-    noise_classic = np.random.normal(0, 0.1, gt_traj.shape)
-    slam_classic = gt_traj + noise_classic
-    
-    # SIFT Kornia: errores ligeramente mayores
-    noise_kornia = np.random.normal(0, 0.15, gt_traj.shape)
-    slam_kornia = gt_traj + noise_kornia
-    
-    # Agregar trayectorias
-    print("\n📈 Calculando métricas de error...")
-    comparator.add_estimated_trajectory("SIFT Classic", slam_classic)
-    comparator.add_estimated_trajectory("SIFT Kornia", slam_kornia)
-    
-    # Visualizar
-    comparator.plot_comparison("outputs/benchmarks/trajectory_comparison.png")
-    
-    # Resumen
-    comparator.print_summary()
-    
-    # Exportar
-    comparator.export_results("outputs/benchmarks/trajectory_errors.json")
-
-
-if __name__ == "__main__":
-    main()
