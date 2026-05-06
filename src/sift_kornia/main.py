@@ -5,6 +5,13 @@ import glob
 import time
 import torch
 import kornia
+import os
+import signal
+import numpy as np
+
+# Agregar directorio padre (src/) al path para importar benchmark_logger
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)).replace('/sift_kornia', ''))
+
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 
@@ -12,7 +19,8 @@ from features import Frame, match_frames, add_ones
 from pointmap import Map
 from display import Display
 from utils import read_calibration_file, extract_intrinsic_matrix
-from config import WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID
+from config import WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID, ENABLE_LOGGING, OUTPUT_DIR, MAX_FRAMES
+from benchmark_logger import BenchmarkLogger
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='kornia')
@@ -23,6 +31,20 @@ device = kornia.utils.get_mps_device_if_available()
 # Umbrales de movimiento
 MIN_TRANSLATION = 0.05
 MAX_TRANSLATION = 2.0
+
+# Variable global para almacenar la instancia SLAM
+_slam_instance = None
+
+def signal_handler(sig, frame):
+    """Manejador para Ctrl+C que exporta el logger antes de salir"""
+    global _slam_instance
+    if _slam_instance:
+        _slam_instance.export_logger()
+        print("\n[Info] Benchmark exportado antes de salir (Ctrl+C).")
+    sys.exit(0)
+
+# Registrar el manejador de señales
+signal.signal(signal.SIGINT, signal_handler)
 
 
 class VisualSLAM:
@@ -36,17 +58,76 @@ class VisualSLAM:
         # Cargar calibración
         calib_lines = read_calibration_file(CALIB_PATH)
         self.K = extract_intrinsic_matrix(calib_lines, device, CAMERA_ID)
+        
+        # Logger (si está habilitado)
+        self.logger = BenchmarkLogger("sift_kornia") if ENABLE_LOGGING else None
 
         # Timer
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(0)
+    
+    def export_logger(self):
+        """Exporta el logger y guarda análisis cualitativo (imágenes) + trayectoria"""
+        if self.logger is not None:
+            import os
+            output_file = os.path.join(OUTPUT_DIR, "sift_kornia.json")
+            self.logger.export_summary(output_file)
+        
+        # Guardar imágenes para análisis cualitativo
+        self.display.save_camera_frame(OUTPUT_DIR)
+        self.display.save_trajectory_plot(OUTPUT_DIR)
+        
+        # Guardar trayectoria estimada para validación contra Ground Truth
+        self._save_trajectory(OUTPUT_DIR)
+    
+    def _save_trajectory(self, output_dir):
+        """Guarda la trayectoria estimada en formato JSON para validación"""
+        import os
+        import json
+        from datetime import datetime
+        
+        # Obtener datos de trayectoria
+        trajectory_data = self.display.get_trajectory_data()
+        
+        # Crear estructura de datos
+        output_data = {
+            "metadata": {
+                "implementation": "sift_kornia",
+                "timestamp": datetime.now().isoformat(),
+                "num_frames": len(trajectory_data['x'])
+            },
+            "trajectory": {
+                "x": trajectory_data['x'],
+                "z": trajectory_data['z']
+            },
+            "statistics": {
+                "num_frames": len(trajectory_data['x']),
+                "total_distance": float(np.sum(np.sqrt(np.diff(trajectory_data['x'])**2 + np.diff(trajectory_data['z'])**2)))
+            }
+        }
+        
+        # Guardar
+        output_file = os.path.join(output_dir, "sift_kornia_trajectory.json")
+        with open(output_file, 'w') as f:
+            json.dump(output_data, f, indent=2)
+        
+        print(f"✓ Trayectoria estimada guardada: {output_file}")
 
     def update_frame(self):
-        # Detener al terminar
+        # Detener al terminar o llegar a MAX_FRAMES
         if self.frame_idx >= len(self.image_files):
             self.timer.stop()
+            self.export_logger()
             return
+        
+        # Limitar a MAX_FRAMES si está configurado
+        if MAX_FRAMES is not None and self.frame_idx >= MAX_FRAMES:
+            self.timer.stop()
+            self.export_logger()
+            return
+
+        frame_start_time = time.perf_counter()
 
         # Leer imagen
         img = cv2.imread(self.image_files[self.frame_idx])
@@ -64,11 +145,13 @@ class VisualSLAM:
         # Crear frame
         frame = Frame(self.map, img_tensor, self.K, device)
         
+        num_matches = 0
         if frame.id > 0:
             f1, f2 = self.map.frames[-1], self.map.frames[-2]
             
             try:
                 idx1, idx2, Rt = match_frames(f1, f2)
+                num_matches = len(idx1)
                 
                 # Validar traslación
                 tnorm = torch.norm(Rt[:3, 3]).item()
@@ -122,6 +205,11 @@ class VisualSLAM:
         else:
             self.display.update_frame_display(img, torch.empty((0, 2)))
         
+        # Logging de benchmark
+        if self.logger is not None:
+            frame_elapsed_ms = (time.perf_counter() - frame_start_time) * 1000
+            self.logger.log_frame(frame.id, num_matches, frame_elapsed_ms)
+
         self.frame_idx += 1
 
         # Métricas de tiempo
@@ -179,11 +267,21 @@ def filter_points_behind_camera(points, cam_pose,
 
 if __name__ == "__main__":
     files = sorted(glob.glob(IMG_PATH))
+    
+    # Limitar cantidad de frames si MAX_FRAMES está configurado
+    if MAX_FRAMES is not None and MAX_FRAMES > 0:
+        files = files[:MAX_FRAMES]
+        print(f"[Info] Limitado a {MAX_FRAMES} frames de {len(sorted(glob.glob(IMG_PATH)))}")
+    
     app = QApplication(sys.argv)
     
     display = Display(WIDTH, HEIGHT)
     display.show()
     
-    slam = VisualSLAM(files, display)
+    # Crear sistema SLAM y asignarlo a la variable global
+    _slam_instance = VisualSLAM(files, display)
+    
+    # Conectar callback de cierre de display para exportar logger
+    display.set_on_close_callback(_slam_instance.export_logger)
     
     sys.exit(app.exec_())
