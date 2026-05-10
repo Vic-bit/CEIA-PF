@@ -1,87 +1,70 @@
-# Visual SLAM Monocular - Comparación SIFT Classic vs Kornia
+# Visual SLAM Monocular — SIFT Classic vs SIFT Kornia
 
-Proyecto Final de Estudios - CEIA  
+**Proyecto Final de Especialización — CEIA**  
 Autor: Víctor David Silva
 
-⏰ **Si retomaste después de tiempo:** Ve a [🚀 Guía de Ejecución](#-guía-de-ejecución---paso-a-paso)
+---
 
-## 📋 Descripción
+## Descripción
 
-Sistema de **Visual SLAM** (Simultaneous Localization and Mapping) monocular que compara dos implementaciones de extracción de características:
-- **SIFT Classic**: Usando OpenCV tradicional (`cv2.SIFT()`)
-- **SIFT Kornia**: Usando Kornia (GPU-optimizado, soporta MPS en Apple Silicon)
+Sistema de **Visual SLAM monocular** que compara dos implementaciones de extracción de características sobre secuencias del dataset KITTI:
 
-El proyecto estima la **trayectoria de cámara** y reconstruye un **mapa 3D** a partir de secuencias de imágenes KITTI, alineando resultados contra ground truth mediante transformación Sim(3) (7-DoF).
+- **SIFT Classic**: Implementación tradicional vía OpenCV (`cv2.SIFT`)
+- **SIFT Kornia**: Implementación optimizada para GPU (compatible con MPS en Apple Silicon)
 
-## 🗂️ Estructura del Proyecto
+El sistema estima la trayectoria de cámara y reconstruye un mapa 3D a partir de imágenes monoculares, alineando los resultados contra el ground truth mediante transformación Sim(3) (7-DoF).
+
+---
+
+## Estructura del Proyecto
 
 ```
-src/
-├── analysis/                  # ✨ NUEVO: Módulo reutilizable
-│   ├── __init__.py           # Imports limpios
-│   ├── ground_truth.py       # Clase GroundTruthAnalyzer
-│   └── trajectory.py         # Clase TrajectoryComparison + helpers
-│
-├── sift_classic/              # Implementación con OpenCV SIFT clásico
-│   ├── main.py               # Script de ejecución con GUI Qt5
-│   ├── features.py           # Extracción y emparejamiento SIFT
-│   ├── pointmap.py           # Mapa de puntos 3D
-│   ├── display.py            # Visualización interactiva
-│   ├── utils.py              # Utilidades de calibración
-│   └── config.py             # Parámetros (MAX_FRAMES=250)
-│
-├── sift_kornia/               # Implementación con Kornia (GPU)
-│   ├── main.py
-│   ├── features.py
-│   ├── pointmap.py
-│   ├── display.py
-│   ├── utils.py
-│   └── config.py
-│
-├── sift_kornia_copy/          # Experimental (backup, no usar)
-│
-└── alignment/                    # Módulos reutilizables
-    ├── __init__.py
-    └── alignment.py           # Alineación Sim(3) (reutilizable)
-
-scripts/                       # ✨ NUEVO: Scripts ejecutables
-├── __init__.py
-├── run_ground_truth.py        # Generar GT desde KITTI
-└── evaluate_odometry.py       # Evaluar trayectorias SLAM
-
-notebooks/                     # Análisis exploratorio
-├── EDA.ipynb
-├── EDA_kornia.ipynb
-└── Benchmark_Analysis_SIFT_Classic_vs_Kornia.ipynb
-
-dataset/00/                    # KITTI dataset
-├── calib.txt                 # Calibración de cámara
-├── poses.txt                 # Ground truth (4×4 poses)
-├── times.txt                 # Timestamps
-└── image_0/                  # Imágenes
-
-outputs/benchmarks/            # Resultados
-├── ground_truth_trajectory.json
-├── sift_classic_trajectory.json
-├── sift_kornia_trajectory.json
-├── sift_classic.json         # Métricas de performance
-├── sift_kornia.json
-├── trajectory_comparison_aligned.png
-├── trajectory_evaluation_sim3.json
-└── qualitative_analysis/
-
-main.py                        # ✨ NUEVO: Orquestador principal
-requirements.txt               # Dependencias con versiones exactas
-README.md                      # Este archivo
+CEIA-PF/
+├── src/
+│   ├── analysis/                  # Módulo de análisis reutilizable
+│   │   ├── __init__.py
+│   │   ├── alignment.py           # Alineación Sim(3) — Umeyama
+│   │   └── trajectory.py          # Clase TrajectoryComparison
+│   ├── slam/
+│   │   ├── sift_classic/          # Implementación OpenCV SIFT
+│   │   │   ├── main.py
+│   │   │   ├── features.py
+│   │   │   ├── pointmap.py
+│   │   │   ├── display.py
+│   │   │   ├── utils.py
+│   │   │   └── config.py
+│   │   └── sift_kornia/           # Implementación Kornia (GPU)
+│   │       ├── main.py
+│   │       ├── features.py
+│   │       ├── pointmap.py
+│   │       ├── display.py
+│   │       ├── utils.py
+│   │       └── config.py
+│   ├── ground_truth/
+│   │   ├── generate_ground_truth.py
+│   │   └── ground_truth.py
+│   ├── evaluation/
+│   │   └── evaluate_slam.py
+│   └── utils/
+│       └── benchmark_logger.py
+├── notebooks/
+│   ├── EDA.ipynb
+│   ├── EDA_kornia.ipynb
+│   └── Benchmark_Analysis_SIFT_Classic_vs_Kornia.ipynb
+├── dataset/00/                    # Dataset KITTI (no incluido en el repo)
+│   ├── calib.txt
+│   ├── poses.txt
+│   ├── times.txt
+│   └── image_0/
+├── outputs/benchmarks/            # Resultados generados
+├── main.py                        # Orquestador principal
+├── pyproject.toml
+└── requirements.txt
 ```
 
-**¿Qué cambió?**
-- ✨ **`src/analysis/`**: Módulo reutilizable (antes eran archivos sueltos en raíz)
-- ✨ **`scripts/`**: Scripts ejecutables (antes eran archivos en raíz)
-- ✨ **`main.py`**: Orquestador (point of entry único)
-- ✨ **Cleaner imports**: Todos los módulos son importables desde `src`
+---
 
-## 📦 Requisitos
+## Requisitos
 
 - Python 3.8+
 - OpenCV (clásico y contrib)
@@ -90,187 +73,123 @@ README.md                      # Este archivo
 - PyTorch
 - Kornia
 
-Instala todas las dependencias con versiones exactas:
+El dataset KITTI (secuencia 00) debe descargarse por separado desde [cvlibs.net](https://www.cvlibs.net/datasets/kitti/) y colocarse en `dataset/00/`.
+
+---
+
+## Instalación
 
 ```bash
+git clone https://github.com/tu-usuario/CEIA-PF
+cd CEIA-PF
 pip install -r requirements.txt
+pip install -e .
 ```
 
-## 🚀 Guía de Ejecución - Paso a Paso
+El comando `pip install -e .` registra el paquete `src` en el entorno Python, permitiendo ejecutar cualquier script desde la raíz del proyecto sin manipular paths manualmente.
 
-### **OPCIÓN A: Pipeline Completo (Recomendado para empezar)**
+---
 
-Ejecuta TODO en una sola línea (abre 2 GUIs interactivas):
+## Ejecución
+
+Todos los comandos deben ejecutarse desde la **raíz del proyecto** (`CEIA-PF/`).
+
+### Pipeline completo (recomendado)
 
 ```bash
 python main.py full
 ```
 
-**Esto hace:**
-1. Genera ground truth
-2. Abre GUI de SIFT Classic (haz clic para interactuar, cierra para guardar)
-3. Abre GUI de SIFT Kornia  (haz clic para interactuar, cierra para guardar)
-4. Compara resultados automáticamente
-5. Genera gráficos y reportes
+Ejecuta los 4 pasos en secuencia: ground truth → SIFT Classic → SIFT Kornia → evaluación.
 
-**Outputes:**
+---
+
+### Ejecución paso a paso
+
+**Paso 1 — Generar Ground Truth**
+
+```bash
+python src/ground_truth/generate_ground_truth.py
+```
+
+Output: `outputs/benchmarks/ground_truth_trajectory.json`
+
+---
+
+**Paso 2 — Ejecutar SIFT Classic**
+
+```bash
+python src/slam/sift_classic/main.py
+```
+
+Se abre una GUI interactiva con la trayectoria estimada y el mapa 3D en tiempo real. Al cerrar la ventana se guardan los resultados automáticamente.
+
+Output: `outputs/benchmarks/sift_classic_trajectory.json`
+
+---
+
+**Paso 3 — Ejecutar SIFT Kornia**
+
+```bash
+python src/slam/sift_kornia/main.py
+```
+
+Idéntico al paso anterior. Si hay GPU disponible (CUDA o MPS), se utiliza automáticamente.
+
+Output: `outputs/benchmarks/sift_kornia_trajectory.json`
+
+---
+
+**Paso 4 — Evaluar y comparar trayectorias**
+
+```bash
+python src/evaluation/evaluate_slam.py
+```
+
+Alinea ambas trayectorias contra el ground truth mediante Sim(3), calcula métricas ATE y RPE, y genera gráficos comparativos.
+
+Outputs:
 - `outputs/benchmarks/trajectory_comparison_aligned.png`
 - `outputs/benchmarks/trajectory_evaluation_sim3.json`
 
 ---
 
-### **OPCIÓN B: Paso a Paso Manual**
+## Configuración
 
-Si prefieres más control, ejecuta cada paso:
+Los parámetros principales se encuentran en `src/slam/sift_classic/config.py` y `src/slam/sift_kornia/config.py`:
 
-#### **PASO 1: Generar Ground Truth**
-
-```bash
-python scripts/run_ground_truth.py
+```python
+MAX_FRAMES = 250              # Frames a procesar
+MATCHER_TYPE = "BruteForce"   # Alternativa: "FLANN"
+RANSAC_THRESHOLD = 1.0
+TRIANGULATION_MIN_DEPTH = 0.1
 ```
 
-**Output:**
-- `outputs/benchmarks/ground_truth_trajectory.json` ← truth
-- Información: 250 frames (configurable en `src/sift_classic/config.py`)
+---
 
-#### **PASO 2: Ejecutar SIFT Classic (GUI Interactiva)**
+## Métricas de Evaluación
 
-```bash
-python src/sift_classic/main.py
-```
+**ATE (Absolute Trajectory Error):** diferencia euclidiana entre poses estimadas y ground truth. Unidad: metros. Valores < 0.1 m se consideran precisos.
 
-**Interfaz:**
-- Visualización en tiempo real de trayectoria
-- Puntos 3D detectados en el mapa
-- **Al cerrar la ventana**: guarda logs automáticamente
+**RPE (Relative Pose Error):** error de movimiento relativo entre frames consecutivos (ventana de 5 frames). Captura la consistencia local de la odometría.
 
-**Outputs:**
-- `outputs/benchmarks/sift_classic_trajectory.json` ← trayectoria estimada
-- `outputs/benchmarks/sift_classic.json` ← métricas (FPS, matches, tiempo)
+**Factor de escala (s):** escala uniforme aplicada en la alineación Sim(3). Un valor cercano a 1.0 indica que el sistema estimó la escala correctamente.
 
-#### **PASO 3: Ejecutar SIFT Kornia (GPU - GUI Interactiva)**
+---
 
-```bash
-python src/sift_kornia/main.py
-```
-
-**Interfaz:** Idéntica a SIFT Classic (pero puede usar GPU/MPS)
-
-**Outputs:**
-- `outputs/benchmarks/sift_kornia_trajectory.json`
-- `outputs/benchmarks/sift_kornia.json` ← métricas GPU
-
-#### **PASO 4: Evaluar y Comparar**
-
-```bash
-python scripts/evaluate_odometry.py
-```
-
-**Qué hace:**
-1. Carga: Ground Truth + ambas trayectorias SLAM
-2. Alinea ambas con Sim(3) contra GT (ajusta escala, rotación, traslación)
-3. Calcula:
-   - **ATE** (Absolute Trajectory Error)
-   - **RPE** (Relative Pose Error)
-   - Factor de escala (s)
-4. Genera gráficos de comparación
-
-**Outputs:**
-- `outputs/benchmarks/trajectory_comparison_aligned.png` ← gráficos
-- `outputs/benchmarks/trajectory_evaluation_sim3.json` ← resultados detallados
-
-#### **PASO 5: Análisis Interactivo (Notebook - Opcional)**
+## Análisis en Notebook
 
 ```bash
 jupyter notebook notebooks/Benchmark_Analysis_SIFT_Classic_vs_Kornia.ipynb
 ```
 
-**4 Secciones Temáticas:**
-1. **Carga de Datos**: Lee JSONs + visualiza metadata
-2. **Trayectorias**: Superpone GT vs SLAM alineadas
-3. **Análisis de Errores**: Distribuciones ATE/RPE
-4. **Métricas de Performance**: FPS, RAM, matches
+El notebook contiene 4 secciones: carga de datos, comparación de trayectorias, distribución de errores ATE/RPE, y métricas de performance (FPS, RAM, matches por frame).
 
 ---
 
-## ⚙️ Configuración
-
-**Edita `src/sift_classic/config.py` y `src/sift_kornia/config.py`:**
-
-```python
-MAX_FRAMES = 250           # Número de frames a procesar
-MATCHER_TYPE = "BruteForce"  # O "FLANN"
-RANSAC_THRESHOLD = 1.0    # Threshold para RANSAC
-TRIANGULATION_MIN_DEPTH = 0.1  # Profundidad mínima aceptada
-```
-
-## 🔍 Interpretación de Resultados
-
-### ATE (Absolute Trajectory Error)
-- Diferencia euclidiana entre poses estimadas vs ground truth
-- **Unidad**: metros
-- **Bueno**: < 0.1m (muy preciso), < 1m (aceptable)
-
-### RPE (Relative Pose Error)
-- Error de movimiento relativo entre frames consecutivos (Δ5 frames)
-- Captura consistencia de odometría
-- **Unidad**: metros
-
-### Scale Factor (s)
-- Factor de escala uniforme aplicado: `trayectoria_slam × s ≈ metros_reales`
-- Si s ≈ 1.0 → SLAM detectó escala correctamente
-- Si s >> 1 → SLAM reportó distancias muy pequeñas
-
-## � Debugging & Troubleshooting
-
-**Si `scripts/evaluate_odometry.py` falla:**
-1. ✓ Verifica que exista `outputs/benchmarks/ground_truth_trajectory.json`
-   - Si no: ejecuta `python scripts/run_ground_truth.py`
-2. ✓ Verifica que existan `sift_classic_trajectory.json` y `sift_kornia_trajectory.json`
-   - Si no: ejecuta los main.py respectivos
-
-**Si GUI de SIFT no carga:**
-- Verifica PyQt5: `python -c "import PyQt5; print(PyQt5.__version__)"`
-- Verifica calib.txt existe: `ls dataset/00/calib.txt`
-
-**Si Kornia no usa GPU:**
-- Verificá: `python -c "import torch; print(torch.backends.mps.is_available())"` (Apple Silicon)
-- O `torch.cuda.is_available()` (NVIDIA)
-
-**Si imports fallan:**
-- `from src.analysis import GroundTruthAnalyzer` debe funcionar
-- `from src.alignment.alignment import align_sim3_umeyama` debe funcionar
-- Si no funciona: verifica que estés en la carpeta raíz del proyecto
-
-## 📖 Versiones de Dependencias
-
-ver [requirements.txt](requirements.txt) para versiones exactas (distancia en 2+ meses)
-
-## 🔗 Referencias
+## Referencias
 
 - [KITTI Dataset](http://www.cvlibs.net/datasets/kitti/)
-- [SIFT Paper (Lowe 2004)](https://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf)
-- [OpenCV SIFT](https://docs.opencv.org/latest/da/df5/tutorial_py_sift_intro.html)
-- [Kornia Framework](https://kornia.readthedocs.io/)
-- [Sim(3) Alignment (Umeyama 1991)](https://ieeexplore.ieee.org/document/70844)
-
-## 👤 Contacto
-
-Víctor David Silva - CEIA
-
-## Instalación
-```bash
-pip install -r requirements.txt
-```
-
-## Ejecución
-
-1. Asegúrate de tener el dataset en la ruta `dataset/00/` con imágenes y archivo de calibración. El cual se obtiene de https://www.cvlibs.net/datasets/kitti/
-2. Modifica los parámetros en `src/sift_classic/config.py` si es necesario.
-3. Ejecuta el sistema desde la carpeta raíz del proyecto:
-
-```bash
-python src/sift_classic/main.py
-```
-
-Se abrirá una interfaz gráfica mostrando la imagen actual, la trayectoria estimada y los puntos 3D reconstruidos.
+- [SIFT — Lowe (2004)](https://www.cs.ubc.ca/~lowe/papers/ijcv04.pdf)
+- [Kornia](https://kornia.readthedocs.io/)
+- [Sim(3) Alignment — Umeyama (1991)](https://ieeexplore.ieee.org/document/70844)

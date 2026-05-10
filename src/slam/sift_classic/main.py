@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 from utils import read_calibration_file, extract_intrinsic_matrix
 from config import (WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID, ENABLE_LOGGING, OUTPUT_DIR, MAX_FRAMES)
-from benchmark_logger import BenchmarkLogger
+from src.slam.utils.benchmark_logger import BenchmarkLogger
 
 # Variable global para almacenar la instancia SLAM
 _slam_instance = None

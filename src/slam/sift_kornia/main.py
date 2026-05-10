@@ -9,9 +9,6 @@ import os
 import signal
 import numpy as np
 
-# Agregar directorio padre (src/) al path para importar benchmark_logger
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)).replace('/sift_kornia', ''))
-
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 
@@ -20,7 +17,7 @@ from pointmap import Map
 from display import Display
 from utils import read_calibration_file, extract_intrinsic_matrix
 from config import WIDTH, HEIGHT, CALIB_PATH, IMG_PATH, CAMERA_ID, ENABLE_LOGGING, OUTPUT_DIR, MAX_FRAMES
-from benchmark_logger import BenchmarkLogger
+from src.slam.utils.benchmark_logger import BenchmarkLogger
 
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='kornia')
