@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 # Calcular paths basados en la ubicación de este archivo
-_CONFIG_DIR = Path(__file__).parent  # directorio de config.py (src/sift_classic/)
-_PROJECT_ROOT = _CONFIG_DIR.parent.parent  # raíz del proyecto (CEIA-PF/)
+_CONFIG_DIR = Path(__file__).parent  # directorio de config.py (src/sift_kornia/)
+_PROJECT_ROOT = _CONFIG_DIR.parent.parent.parent  # raíz del proyecto (CEIA-PF/)
 
 SIFT_N_FEATURES = 150
 WIDTH = 1241

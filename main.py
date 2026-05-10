@@ -21,7 +21,7 @@ def run_ground_truth():
     """Ejecuta generación de ground truth"""
     print("\n🚀 Ejecutando: Generación de Ground Truth")
     print("-" * 80)
-    result = subprocess.run([sys.executable, "scripts/run_ground_truth.py"], cwd=Path(__file__).parent)
+    result = subprocess.run([sys.executable, "src/pipeline/preprocessing/generate_ground_truth.py"], cwd=Path(__file__).parent)
     return result.returncode == 0
 
 
@@ -29,7 +29,7 @@ def run_evaluate():
     """Ejecuta evaluación de odometría"""
     print("\n🚀 Ejecutando: Evaluación de Odometría")
     print("-" * 80)
-    result = subprocess.run([sys.executable, "scripts/evaluate_odometry.py"], cwd=Path(__file__).parent)
+    result = subprocess.run([sys.executable, "src/pipeline/evaluation/evaluate_slam.py"], cwd=Path(__file__).parent)
     return result.returncode == 0
 
 
@@ -37,7 +37,7 @@ def run_slam_classic():
     """Ejecuta SIFT Classic"""
     print("\n🚀 Ejecutando: SIFT Classic (GUI)")
     print("-" * 80)
-    result = subprocess.run([sys.executable, "src/sift_classic/main.py"], cwd=Path(__file__).parent)
+    result = subprocess.run([sys.executable, "src/slam/sift_classic/main.py"], cwd=Path(__file__).parent)
     return result.returncode == 0
 
 
@@ -45,7 +45,7 @@ def run_slam_kornia():
     """Ejecuta SIFT Kornia"""
     print("\n🚀 Ejecutando: SIFT Kornia (GUI)")
     print("-" * 80)
-    result = subprocess.run([sys.executable, "src/sift_kornia/main.py"], cwd=Path(__file__).parent)
+    result = subprocess.run([sys.executable, "src/slam/sift_kornia/main.py"], cwd=Path(__file__).parent)
     return result.returncode == 0
 
 

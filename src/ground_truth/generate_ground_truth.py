@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """
 Script ejecutable: Generar Ground Truth desde dataset KITTI
-Archivo: scripts/run_ground_truth.py
+Archivo: src/pipeline/preprocessing/generate_ground_truth.py
 
 Uso:
-    python scripts/run_ground_truth.py
+    python src/pipeline/preprocessing/generate_ground_truth.py
 """
 
 from pathlib import Path
-import sys
 
-# Agregar src al path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.analysis import GroundTruthAnalyzer
-from src.sift_classic.config import MAX_FRAMES
-
+from src.slam.sift_classic.config import MAX_FRAMES
 
 def main():
     """Genera ground truth desde KITTI dataset 00"""
