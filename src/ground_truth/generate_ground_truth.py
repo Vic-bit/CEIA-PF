@@ -9,8 +9,7 @@ Uso:
 
 from pathlib import Path
 
-
-from src.analysis import GroundTruthAnalyzer
+from src.ground_truth.ground_truth import GroundTruthAnalyzer
 from src.slam.sift_classic.config import MAX_FRAMES
 
 def main():

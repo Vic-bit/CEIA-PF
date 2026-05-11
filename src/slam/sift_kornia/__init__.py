@@ -1,0 +1,1 @@
+"""SIFT Kornia SLAM implementación"""
