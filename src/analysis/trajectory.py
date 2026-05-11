@@ -13,10 +13,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Importar funciones de alineación
-from src.analysis.alignment import (
-    align_sim3_umeyama,
-    apply_sim3_transform,
-)
+from src.analysis.alignment import align_sim3_umeyama, apply_sim3_transform
 
 
 class TrajectoryComparison:
