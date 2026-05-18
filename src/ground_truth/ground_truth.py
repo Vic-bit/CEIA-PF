@@ -1,8 +1,5 @@
 """
 Ground Truth Analysis - Lectura de poses.txt y times.txt del dataset KITTI
-Módulo reutilizable para análisis de trayectorias ground truth
-
-La variable MAX_FRAMES debe coincidir con la de config.py para análisis consistente
 """
 
 import numpy as np

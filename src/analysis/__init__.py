@@ -1,1 +1,0 @@
-"""Análisis de trayectorias SLAM y ground truth"""

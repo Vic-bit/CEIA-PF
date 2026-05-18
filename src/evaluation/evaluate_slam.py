@@ -11,7 +11,7 @@ from pathlib import Path
 import json
 import numpy as np
 
-from src.analysis.trayectory import TrajectoryComparison, load_slam_trajectory
+from src.evaluation.trayectory import TrajectoryComparison, load_slam_trajectory
 from src.slam.sift_classic.config import MAX_FRAMES
 
 
