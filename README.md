@@ -21,10 +21,6 @@ El sistema estima la trayectoria de cámara y reconstruye un mapa 3D a partir de
 ```
 CEIA-PF/
 ├── src/
-│   ├── analysis/                  # Módulo de análisis reutilizable
-│   │   ├── __init__.py
-│   │   ├── alignment.py           # Alineación Sim(3) — Umeyama
-│   │   └── trajectory.py          # Clase TrajectoryComparison
 │   ├── slam/
 │   │   ├── sift_classic/          # Implementación OpenCV SIFT
 │   │   │   ├── main.py
@@ -44,20 +40,20 @@ CEIA-PF/
 │   │   ├── generate_ground_truth.py
 │   │   └── ground_truth.py
 │   ├── evaluation/
-│   │   └── evaluate_slam.py
+│   │   ├── evaluate_slam.py
+│   │   ├── alignment.py           # Alineación Sim(3) — Umeyama
+│   │   └── trajectory.py          # Clase TrajectoryComparison
 │   └── utils/
 │       └── benchmark_logger.py
 ├── notebooks/
 │   ├── EDA.ipynb
 │   ├── EDA_kornia.ipynb
-│   └── Benchmark_Analysis_SIFT_Classic_vs_Kornia.ipynb
 ├── dataset/00/                    # Dataset KITTI (no incluido en el repo)
 │   ├── calib.txt
 │   ├── poses.txt
 │   ├── times.txt
 │   └── image_0/
 ├── outputs/benchmarks/            # Resultados generados
-├── main.py                        # Orquestador principal
 ├── pyproject.toml
 └── requirements.txt
 ```
@@ -94,14 +90,6 @@ El comando `pip install -e .` registra el paquete `src` en el entorno Python, pe
 
 Todos los comandos deben ejecutarse desde la **raíz del proyecto** (`CEIA-PF/`).
 
-### Pipeline completo (recomendado)
-
-```bash
-python main.py full
-```
-
-Ejecuta los 4 pasos en secuencia: ground truth → SIFT Classic → SIFT Kornia → evaluación.
-
 ---
 
 ### Ejecución paso a paso
@@ -122,7 +110,7 @@ Output: `outputs/benchmarks/ground_truth_trajectory.json`
 python src/slam/sift_classic/main.py
 ```
 
-Se abre una GUI interactiva con la trayectoria estimada y el mapa 3D en tiempo real. Al cerrar la ventana se guardan los resultados automáticamente.
+Se abre una GUI interactiva con la trayectoria estimada y el mapa 3D en tiempo real. Al cerrar la ventana se guardan los resultados automáticamente. Se puede cerrar presionando la tecla q, pero se recomienda dejarlo hasta que se cierre en el número de frame máximo configurado.
 
 Output: `outputs/benchmarks/sift_classic_trajectory.json`
 
@@ -160,7 +148,7 @@ Los parámetros principales se encuentran en `src/slam/sift_classic/config.py` y
 
 ```python
 MAX_FRAMES = 250              # Frames a procesar
-MATCHER_TYPE = "BruteForce"   # Alternativa: "FLANN"
+MATCHER_TYPE = "BruteForce"  
 RANSAC_THRESHOLD = 1.0
 TRIANGULATION_MIN_DEPTH = 0.1
 ```
@@ -174,16 +162,6 @@ TRIANGULATION_MIN_DEPTH = 0.1
 **RPE (Relative Pose Error):** error de movimiento relativo entre frames consecutivos (ventana de 5 frames). Captura la consistencia local de la odometría.
 
 **Factor de escala (s):** escala uniforme aplicada en la alineación Sim(3). Un valor cercano a 1.0 indica que el sistema estimó la escala correctamente.
-
----
-
-## Análisis en Notebook
-
-```bash
-jupyter notebook notebooks/Benchmark_Analysis_SIFT_Classic_vs_Kornia.ipynb
-```
-
-El notebook contiene 4 secciones: carga de datos, comparación de trayectorias, distribución de errores ATE/RPE, y métricas de performance (FPS, RAM, matches por frame).
 
 ---
 

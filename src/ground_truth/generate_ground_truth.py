@@ -1,10 +1,5 @@
-#!/usr/bin/env python3
 """
 Script ejecutable: Generar Ground Truth desde dataset KITTI
-Archivo: src/pipeline/preprocessing/generate_ground_truth.py
-
-Uso:
-    python src/pipeline/preprocessing/generate_ground_truth.py
 """
 
 from pathlib import Path
