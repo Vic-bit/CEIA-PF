@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta" 
+
+[project]
+name = "CEIA-PF"
+version = "0.2.5"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

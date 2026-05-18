@@ -4,3 +4,18 @@
 /src/sift_kornia_copy
 
 .DS_Store
+# Academic archive - preserved but excluded from active development
+_archive_sim3_implementation/
+_archive_broken_evo/
+
+/outputs
+/outputs/benchmarks
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+notebooks/.ipynb_checkpoints
+
+CEIA_PF.egg-info/

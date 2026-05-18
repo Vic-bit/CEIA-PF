@@ -9,6 +9,9 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
 import pyqtgraph as pg
+from pyqtgraph.exporters import ImageExporter
+from pathlib import Path
+from datetime import datetime
 
 
 class Display(QMainWindow):
@@ -18,8 +21,16 @@ class Display(QMainWindow):
         self.W = W
         self.H = H
         self.traj_x, self.traj_z = [], []
+        self.on_close_callback = None  # Callback para cuando se cierre la ventana
+        # Variables para almacenar el frame actual con keypoints
+        self.current_frame_img = None
+        self.current_keypoints = None
         
         self._setup_ui()
+    
+    def set_on_close_callback(self, callback):
+        """Establece una callback que se ejecuta cuando se cierra la ventana"""
+        self.on_close_callback = callback
 
     def _setup_ui(self):
         cw = QWidget()
@@ -68,6 +79,10 @@ class Display(QMainWindow):
         
         for x, y in keypoints.astype(int):
             cv2.circle(disp, (x, y), 2, (0, 255, 0), -1)
+        
+        # Guardar el frame actual con keypoints para exportar después
+        self.current_frame_img = disp.copy()
+        self.current_keypoints = keypoints.copy()
 
         h, w, _ = disp.shape
         qimg = QImage(disp.data, w, h, 3 * w, QImage.Format_RGB888).rgbSwapped()
@@ -116,4 +131,62 @@ class Display(QMainWindow):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Q:
+            # Ejecutar callback antes de cerrar
+            if self.on_close_callback:
+                self.on_close_callback()
             self.close()
+    
+    def closeEvent(self, event):
+        """Maneja el evento de cierre de ventana"""
+        # Ejecutar callback cuando se cierre la ventana (también por X)
+        if self.on_close_callback:
+            self.on_close_callback()
+        event.accept()
+    
+    def save_camera_frame(self, output_dir):
+        """Guarda la imagen actual de la cámara con los keypoints detectados"""
+        if self.current_frame_img is None:
+            print("[Warning] No hay frame actual para guardar")
+            return None
+        
+        # Crear directorio si no existe
+        output_path = Path(output_dir) / "qualitative_analysis"
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Guardar con timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = output_path / f"camera_frame_{timestamp}.png"
+        
+        # Convertir BGR a RGB para guardar correctamente
+        frame_rgb = cv2.cvtColor(self.current_frame_img, cv2.COLOR_BGR2RGB)
+        cv2.imwrite(str(filename), frame_rgb)
+        
+        print(f"✓ Frame de cámara guardado: {filename}")
+        return str(filename)
+    
+    def save_trajectory_plot(self, output_dir):
+        """Guarda el gráfico 2D de trayectoria y mapeo como imagen"""
+        output_path = Path(output_dir) / "qualitative_analysis"
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Exportar gráfico de pyqtgraph
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = output_path / f"trajectory_plot_{timestamp}.png"
+        
+        # Guardar la ventana del plot como imagen
+        exporter = ImageExporter(self.pg_plot.plotItem)
+        exporter.export(str(filename), copy=False)
+        
+        print(f"✓ Gráfico de trayectoria guardado: {filename}")
+        return str(filename)
+    
+    def get_trajectory_data(self):
+        """Retorna los datos de la trayectoria (x, z)"""
+        return {
+            'x': self.traj_x.copy(),
+            'z': self.traj_z.copy()
+        }
+        # Ejecutar callback cuando se cierre la ventana (también por X)
+        if self.on_close_callback:
+            self.on_close_callback()
+        event.accept()
