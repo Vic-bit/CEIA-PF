@@ -1,255 +1,226 @@
+# display.py - Interfaz PyQt5 con controles SLAM + Motores
 import cv2
 import pyqtgraph as pg
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QGridLayout,
-    QGroupBox, QFormLayout, QSlider, QShortcut, QAction, QSplitter
+    QMainWindow, QWidget, QLabel, QVBoxLayout, QHBoxLayout,
+    QFrame, QGridLayout, QGroupBox, QFormLayout, QSlider
 )
-from PyQt5.QtGui import QKeySequence
-from config import (
-    WIDTH, HEIGHT, INIT_DUTY, PLOT_X_MIN, PLOT_X_MAX, PLOT_Z_MIN, PLOT_Z_MAX,
-    SLIDER_MIN, SLIDER_MAX, SKIP_RATE
-)
+from PyQt5.QtGui import QImage, QPixmap
+from config import WIDTH, HEIGHT, PLOT_X_MIN, PLOT_X_MAX, PLOT_Z_MIN, PLOT_Z_MAX
+
 
 
 class MainWindow(QMainWindow):
-    """Ventana principal con visualización y controles del robot."""
+    """Ventana principal con SLAM + controles de motor."""
     
-    def __init__(self, camera, motor_controller, process_vo_callback, trajectory_data):
-        """
-        Inicializa la ventana principal.
-        
-        Args:
-            camera: Instancia de Camera para capturar frames
-            motor_controller: Instancia de MotorController para controlar motores
-            process_vo_callback: Función que procesa frames de VO
-            trajectory_data: Dict con listas 'x' y 'z' para la trayectoria
-        """
+    def __init__(self, motor_controller):
         super().__init__()
-        
-        # Referencias externas
-        self.camera = camera
+        self.setWindowTitle("Visual SLAM + Motor Control - Raspberry Pi")
         self.motor_ctrl = motor_controller
-        self.process_vo = process_vo_callback
-        self.trajectory_data = trajectory_data
+        self.traj_x, self.traj_z = [], []
         
-        # Estado interno
-        self.skip_rate = SKIP_RATE
-        self._skip_counter = 0
-        self.frame_count = 0
-        
-        # Configurar UI
         self._setup_ui()
-        self._setup_menu()
         self._setup_shortcuts()
-        self._setup_timer()
-
-
+        
     def _setup_ui(self):
         """Configura la interfaz de usuario."""
-        self.setWindowTitle("VO + Control")
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
         
-        # Central widget & layout
-        central = QWidget()
-        self.setCentralWidget(central)
-        grid = QGridLayout(central)
-        grid.setContentsMargins(5, 5, 5, 5)
-        grid.setSpacing(10)
-
-        # Splitter left: video & plot
-        splitter = QSplitter(Qt.Vertical)
-        grid.addWidget(splitter, 0, 0, 2, 1)
-
-        # Video label
+        # Layout principal horizontal: SLAM a la izquierda, controles a la derecha
+        main_layout = QHBoxLayout(central_widget)
+        
+        # ========== PANEL IZQUIERDO: SLAM ==========
+        slam_layout = QVBoxLayout()
+        
+        # Métricas
+        metrics_layout = QHBoxLayout()
+        self.lbl_frames = QLabel("Frames: 0")
+        self.lbl_frames.setAlignment(Qt.AlignCenter)
+        self.lbl_points = QLabel("Puntos: 0")
+        self.lbl_points.setAlignment(Qt.AlignCenter)
+        metrics_layout.addWidget(self.lbl_frames)
+        metrics_layout.addWidget(self.lbl_points)
+        slam_layout.addLayout(metrics_layout)
+        
+        # Video
         self.video_label = QLabel()
+        self.video_label.setFrameShape(QFrame.Box)
         self.video_label.setFixedSize(WIDTH, HEIGHT)
-        splitter.addWidget(self.video_label)
-
-        # PyQtGraph plot
-        self.pg_plot = pg.PlotWidget(title="Trayectoria (X,Z)")
-        self.pg_plot.setLabel('bottom', 'X [m]')
-        self.pg_plot.setLabel('left', 'Z [m]')
+        slam_layout.addWidget(self.video_label, stretch=1, alignment=Qt.AlignCenter)
+        
+        # Gráfico de trayectoria
+        self.pg_plot = pg.PlotWidget(title="Trayectoria y Mapeo (X,Z)")
+        self.map_scatter = pg.ScatterPlotItem(size=3, brush=pg.mkBrush(255, 0, 0, 80))
+        self.pg_plot.addItem(self.map_scatter)
+        self.curve = self.pg_plot.plot(pen='y', symbol='o', symbolSize=5)
+        self.pg_plot.setLabel('bottom', 'X')
+        self.pg_plot.setLabel('left', 'Z')
+        self.pg_plot.setFixedSize(400, 400)
+        self.pg_plot.setXRange(PLOT_X_MIN, PLOT_X_MAX)
+        self.pg_plot.setYRange(PLOT_Z_MIN, PLOT_Z_MAX)
         self.pg_plot.showGrid(x=True, y=True)
-        self.pg_plot.enableAutoRange(False, False)
-        self.pg_plot.setXRange(PLOT_X_MIN, PLOT_X_MAX, padding=0)
-        self.pg_plot.setYRange(PLOT_Z_MIN, PLOT_Z_MAX, padding=0)
-        self.curve = self.pg_plot.plot(pen='y', symbol='o')
-        splitter.addWidget(self.pg_plot)
-
-        # Controls panel (right)
-        control = self._create_control_panel()
-        grid.addWidget(control, 0, 1)
-
-        grid.setColumnStretch(0, 3)
-        grid.setColumnStretch(1, 1)
-    
-    def _create_control_panel(self):
-        """Crea el panel de controles y estado."""
-        control = QGroupBox("Control & Status")
-        form = QFormLayout()
-        control.setLayout(form)
-
-        # Labels de estado
-        self.lbl_frame = QLabel("0")
-        self.lbl_command = QLabel("-")
-        self.lbl_dutyA = QLabel(f"{INIT_DUTY}%")
-        self.lbl_dutyB = QLabel(f"{INIT_DUTY}%")
-        form.addRow("Frames:", self.lbl_frame)
-        form.addRow("Command:", self.lbl_command)
-        form.addRow("Duty ENA:", self.lbl_dutyA)
-        form.addRow("Duty ENB:", self.lbl_dutyB)
-
-        # Slider for ENA
-        self.sliderA = QSlider(Qt.Horizontal)
-        self.sliderA.setRange(SLIDER_MIN, SLIDER_MAX)
-        self.sliderA.setValue(INIT_DUTY)
-        self.sliderA.valueChanged.connect(self.on_sliderA)
-        form.addRow("Adjust ENA:", self.sliderA)
-
-        # Slider for ENB
-        self.sliderB = QSlider(Qt.Horizontal)
-        self.sliderB.setRange(SLIDER_MIN, SLIDER_MAX)
-        self.sliderB.setValue(INIT_DUTY)
-        self.sliderB.valueChanged.connect(self.on_sliderB)
-        form.addRow("Adjust ENB:", self.sliderB)
+        slam_layout.addWidget(self.pg_plot, stretch=0, alignment=Qt.AlignCenter)
         
-        return control
+        # ========== PANEL DERECHO: CONTROLES ==========
+        control_layout = QVBoxLayout()
+        
+        # === CONTROLES DE MOVIMIENTO ===
+        movement_group = QGroupBox("Movimiento (WSAD)")
+        movement_layout = QGridLayout(movement_group)
+        
+        # Botón W (adelante)
+        self.btn_forward = QtWidgets.QPushButton("W - Adelante")
+        self.btn_forward.setFixedSize(120, 50)
+        movement_layout.addWidget(self.btn_forward, 0, 1)
+        
+        # Botón A (izquierda)
+        self.btn_left = QtWidgets.QPushButton("A - Izquierda")
+        self.btn_left.setFixedSize(120, 50)
+        movement_layout.addWidget(self.btn_left, 1, 0)
+        
+        # Botón S (atrás)
+        self.btn_backward = QtWidgets.QPushButton("S - Atrás")
+        self.btn_backward.setFixedSize(120, 50)
+        movement_layout.addWidget(self.btn_backward, 1, 1)
+        
+        # Botón D (derecha)
+        self.btn_right = QtWidgets.QPushButton("D - Derecha")
+        self.btn_right.setFixedSize(120, 50)
+        movement_layout.addWidget(self.btn_right, 1, 2)
+        
+        # Botón E (detener)
+        self.btn_stop = QtWidgets.QPushButton("E - DETENER")
+        self.btn_stop.setFixedSize(120, 50)
+        self.btn_stop.setStyleSheet("background-color: red; color: white; font-weight: bold;")
+        movement_layout.addWidget(self.btn_stop, 2, 1)
+        
+        control_layout.addWidget(movement_group)
+        
+        # === CONTROL DE VELOCIDAD ===
+        speed_group = QGroupBox("Velocidad Motor A (ENA)")
+        speed_layout = QFormLayout(speed_group)
+        
+        self.slider_motor_a = QSlider(Qt.Horizontal)
+        self.slider_motor_a.setMinimum(0)
+        self.slider_motor_a.setMaximum(100)
+        self.slider_motor_a.setValue(50)
+        self.slider_motor_a.setTickPosition(QSlider.TicksBelow)
+        self.slider_motor_a.setTickInterval(10)
+        self.lbl_motor_a_val = QLabel("50%")
+        self.lbl_motor_a_val.setAlignment(Qt.AlignCenter)
+        
+        self.slider_motor_a.valueChanged.connect(lambda v: self._update_motor_a_label(v))
+        self.slider_motor_a.valueChanged.connect(lambda v: self.motor_ctrl.set_duty_ena(v))
+        
+        speed_layout.addRow("Duty Cycle ENA:", self.slider_motor_a)
+        speed_layout.addRow("Valor:", self.lbl_motor_a_val)
+        
+        control_layout.addWidget(speed_group)
+        
+        # === CONTROL DE VELOCIDAD MOTOR B ===
+        speed_group_b = QGroupBox("Velocidad Motor B (ENB)")
+        speed_layout_b = QFormLayout(speed_group_b)
+        
+        self.slider_motor_b = QSlider(Qt.Horizontal)
+        self.slider_motor_b.setMinimum(0)
+        self.slider_motor_b.setMaximum(100)
+        self.slider_motor_b.setValue(50)
+        self.slider_motor_b.setTickPosition(QSlider.TicksBelow)
+        self.slider_motor_b.setTickInterval(10)
+        self.lbl_motor_b_val = QLabel("50%")
+        self.lbl_motor_b_val.setAlignment(Qt.AlignCenter)
+        
+        self.slider_motor_b.valueChanged.connect(lambda v: self._update_motor_b_label(v))
+        self.slider_motor_b.valueChanged.connect(lambda v: self.motor_ctrl.set_duty_enb(v))
+        
+        speed_layout_b.addRow("Duty Cycle ENB:", self.slider_motor_b)
+        speed_layout_b.addRow("Valor:", self.lbl_motor_b_val)
+        
+        control_layout.addWidget(speed_group_b)
+        
+        # Espaciador
+        control_layout.addStretch()
+        
+        # === SALIR ===
+        self.btn_quit = QtWidgets.QPushButton("Q - SALIR")
+        self.btn_quit.setFixedSize(120, 50)
+        self.btn_quit.setStyleSheet("background-color: darkred; color: white; font-weight: bold;")
+        control_layout.addWidget(self.btn_quit, alignment=Qt.AlignCenter)
+        
+        # === AGREGAR PANELES AL LAYOUT PRINCIPAL ===
+        left_panel = QWidget()
+        left_panel.setLayout(slam_layout)
+        main_layout.addWidget(left_panel, stretch=2)
+        
+        right_panel = QWidget()
+        right_panel.setLayout(control_layout)
+        right_panel.setMaximumWidth(300)
+        main_layout.addWidget(right_panel, stretch=1)
 
-    def _setup_menu(self):
-        """Configura menú y toolbar."""
-        exitAct = QAction("Exit", self, shortcut="Q", triggered=self.close)
-        menu = self.menuBar().addMenu("File")
-        menu.addAction(exitAct)
-        toolbar = self.addToolBar("Main")
-        toolbar.addAction(exitAct)
-    
     def _setup_shortcuts(self):
-        """Configura atajos de teclado."""
-        keys = {
-            Qt.Key_W: self.forward,
-            Qt.Key_S: self.backward,
-            Qt.Key_A: self.turn_left,
-            Qt.Key_D: self.turn_right,
-            Qt.Key_E: self.stop_motors,
-            Qt.Key_Q: self.close,
-            Qt.Key_Plus: lambda: self.adjustDutyA(+5),
-            Qt.Key_Minus: lambda: self.adjustDutyA(-5),
-            Qt.Key_BracketRight: lambda: self.adjustDutyB(+5),
-            Qt.Key_BracketLeft: lambda: self.adjustDutyB(-5),
-        }
-        for k, fn in keys.items():
-            sc = QShortcut(QKeySequence(k), self, activated=fn)
-            sc.setContext(Qt.ApplicationShortcut)
-    
-    def _setup_timer(self):
-        """Configura el timer de actualización."""
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(30)  # 30ms → ~33 FPS
+        """Configura shortcuts de teclado."""
+        # W - Adelante
+        QtWidgets.QShortcut(Qt.Key_W, self, self.motor_ctrl.forward)
+        # A - Izquierda
+        QtWidgets.QShortcut(Qt.Key_A, self, self.motor_ctrl.turn_left)
+        # S - Atrás
+        QtWidgets.QShortcut(Qt.Key_S, self, self.motor_ctrl.backward)
+        # D - Derecha
+        QtWidgets.QShortcut(Qt.Key_D, self, self.motor_ctrl.turn_right)
+        # E - Detener
+        QtWidgets.QShortcut(Qt.Key_E, self, self.motor_ctrl.stop)
+        # Q - Salir
+        QtWidgets.QShortcut(Qt.Key_Q, self, self.close)
 
-    # ===== Callbacks de sliders =====
-    
-    def on_sliderA(self, v):
-        """Actualiza duty cycle del motor A."""
-        self.motor_ctrl.set_duty_ena(v)
-        self.lbl_dutyA.setText(f"{v}%")
+    def _update_motor_a_label(self, value):
+        """Actualiza el label del motor A."""
+        self.lbl_motor_a_val.setText(f"{value}%")
 
-    def on_sliderB(self, v):
-        """Actualiza duty cycle del motor B."""
-        self.motor_ctrl.set_duty_enb(v)
-        self.lbl_dutyB.setText(f"{v}%")
+    def _update_motor_b_label(self, value):
+        """Actualiza el label del motor B."""
+        self.lbl_motor_b_val.setText(f"{value}%")
 
-    def adjustDutyA(self, delta):
-        """Ajusta duty cycle del motor A con incremento."""
-        self.sliderA.setValue(self.sliderA.value() + delta)
-
-    def adjustDutyB(self, delta):
-        """Ajusta duty cycle del motor B con incremento."""
-        self.sliderB.setValue(self.sliderB.value() + delta)
-
-    # ===== Comandos de movimiento =====
-    
-    def forward(self):
-        """Comando: avanzar."""
-        self.motor_ctrl.forward()
-        self.lbl_command.setText("Forward")
-
-    def backward(self):
-        """Comando: retroceder."""
-        self.motor_ctrl.backward()
-        self.lbl_command.setText("Backward")
-
-    def turn_right(self):
-        """Comando: girar a la derecha."""
-        self.motor_ctrl.turn_right()
-        self.lbl_command.setText("Turn right")
-
-    def turn_left(self):
-        """Comando: girar a la izquierda."""
-        self.motor_ctrl.turn_left()
-        self.lbl_command.setText("Turn left")
-
-    def stop_motors(self):
-        """Comando: detener motores."""
-        self.motor_ctrl.stop()
-        self.lbl_command.setText("Stop motors")
-
-
-    def update_frame(self):
-        """Captura frame, procesa VO y actualiza la UI."""
-        # Skip frames según configuración
-        self._skip_counter += 1
-        if self._skip_counter < self.skip_rate:
-            return
-        self._skip_counter = 0
-
-        # Capturar y convertir imagen
-        rgb = self.camera.capture_array()
-        bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-
-        # Procesar Visual Odometry
-        img_disp, valid = self.process_vo(bgr)
-
-        # Mostrar video en escala de grises
-        gray = cv2.cvtColor(img_disp, cv2.COLOR_BGR2GRAY)
-        h, w = gray.shape
-        qimg = QtGui.QImage(gray.data, w, h, w, QtGui.QImage.Format_Grayscale8)
-        self.video_label.setPixmap(QtGui.QPixmap.fromImage(qimg))
-
-        # Actualizar contador de frames
-        self.frame_count += 1
-        self.lbl_frame.setText(str(self.frame_count))
+    def update_frame_display(self, img, keypoints):
+        """Actualiza la visualización del frame con los keypoints."""
+        disp = cv2.resize(img, (WIDTH, HEIGHT)).copy()
         
-        # Actualizar plot de trayectoria
-        self.curve.setData(self.trajectory_data['x'], self.trajectory_data['z']) #trajectory_x.append(T[0]); trajectory_z.append(T[2])
+        for x, y in keypoints.astype(int):
+            cv2.circle(disp, (x, y), 2, (0, 255, 0), -1)
+        
+        h, w, _ = disp.shape
+        qimg = QImage(disp.data, w, h, 3 * w, QImage.Format_RGB888).rgbSwapped()
+        self.video_label.setPixmap(QPixmap.fromImage(qimg))
 
-    # ===== Eventos de teclado =====
-    
-    def keyPressEvent(self, e):
-        """Maneja eventos de teclado y actualiza label de comando."""
-        key = e.key()
-        cmds = {
-            Qt.Key_W: "Forward",
-            Qt.Key_S: "Backward",
-            Qt.Key_A: "Turn Left",
-            Qt.Key_D: "Turn Right",
-            Qt.Key_E: "Stop",
-            Qt.Key_Q: "Quit"
-        }
-        if key in cmds:
-            self.lbl_command.setText(cmds[key])
-        super().keyPressEvent(e)
+    def update_trajectory(self, x, z):
+        """Actualiza la trayectoria con una nueva posición."""
+        self.traj_x.append(x)
+        self.traj_z.append(z)
+        self.curve.setData(self.traj_x, self.traj_z)
 
-    # ===== Limpieza =====
-    
+    def update_map_visualization(self, points):
+        """Actualiza la visualización de los puntos del mapa."""
+        if len(points) > 0:
+            map_points_xz = []
+            for point in points:
+                x, z = point.pt[0], point.pt[2]
+                map_points_xz.append((x, z))
+            
+            if map_points_xz:
+                pts = [{'pos': pt} for pt in map_points_xz]
+                self.map_scatter.setData(pts)
+
+    def update_metrics(self, frame_count, point_count):
+        """Actualiza las métricas mostradas."""
+        self.lbl_frames.setText(f"Frames: {frame_count}")
+        self.lbl_points.setText(f"Puntos: {point_count}")
+
     def closeEvent(self, event):
-        """Maneja el evento de cierre de ventana."""
-        print("Cleanup before exit...")
-        self.cleanup()
+        """Limpia recursos al cerrar."""
+        try:
+            self.motor_ctrl.cleanup()
+        except:
+            pass
         event.accept()
-
-    def cleanup(self):
-        """Limpia recursos antes de salir."""
-        self.motor_ctrl.cleanup()
-        self.camera.close()
