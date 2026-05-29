@@ -14,7 +14,7 @@ class Camera:
     def __init__(self):
         self.picam2 = Picamera2()
         cfg = self.picam2.create_preview_configuration(
-            main={"format": "RGB888", "size": (WIDTH, HEIGHT)}
+            main={"format": "GRAY8", "size": (WIDTH, HEIGHT)}
         )
         self.picam2.configure(cfg)
         self.picam2.start()
@@ -38,25 +38,23 @@ class Camera:
         print("[Camera] Matriz K calibrada cargada")
 
     def read(self):
-        """Lee un frame y lo devuelve en formato OpenCV (BGR).
+        """Lee un frame y lo devuelve en escala de grises.
         Aplica corrección de distorsión si está disponible.
         Devuelve (ret, img) compatible con cv2.VideoCapture.
         """
         try:
-            # Capturar como RGB
-            rgb_array = self.picam2.capture_array()
-            # Convertir RGB a BGR para OpenCV
-            bgr_array = cv2.cvtColor(rgb_array, cv2.COLOR_RGB2BGR)
+            # Capturar como grayscale (GRAY8)
+            gray_array = self.picam2.capture_array()
             
             # Aplicar corrección de distorsión
-            bgr_undistorted = cv2.undistort(bgr_array, self.K, self.dist_coeffs)
-            return True, bgr_undistorted
+            gray_undistorted = cv2.undistort(gray_array, self.K, self.dist_coeffs)
+            return True, gray_undistorted
         except Exception as e:
             print(f"Error capturando frame: {e}")
             return False, None
     
     def capture_array(self):
-        """Captura un frame como array RGB."""
+        """Captura un frame como array en escala de grises."""
         return self.picam2.capture_array()
     
     def close(self):

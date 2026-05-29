@@ -61,14 +61,14 @@ def extract(img: np.ndarray):
     En Raspberry Pi usa ORB por rendimiento.
     
     Args:
-        img (np.ndarray): Imagen de entrada en BGR
+        img (np.ndarray): Imagen de entrada en escala de grises
 
     Returns:
         keypoints_array (np.ndarray): Array de coordenadas (x,y) de los keypoints
         des (np.ndarray): Descriptores asociados a los keypoints
     """
-    # Convertir a escala de grises
-    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Imagen ya en escala de grises desde captura
+    gray_img = img
 
     # Usar ORB detector cacheado (evita re-instanciación)
     orb = get_orb_detector()
@@ -238,7 +238,7 @@ class Frame(object):
     
     Args:
         map (Map): Mapa al que pertenece el frame
-        img (np.ndarray): Imagen del frame en BGR
+        img (np.ndarray): Imagen del frame en escala de grises
         K (np.ndarray): Matriz intrínseca de la cámara (3x3)
     """
     def __init__(self, map, img, K):
