@@ -25,19 +25,19 @@ def load_calibration_npz(calib_file_path: str) -> np.ndarray:
 def get_intrinsic_matrix_from_npz(calib_dir: str = None) -> np.ndarray:
     """
     Obtiene la matriz intrínseca K desde el archivo calibration.npz
-    en el directorio especificado (o del mismo directorio de este archivo)
+    en el directorio especificado (o desde CALIB_PATH del config)
     
     Args:
         calib_dir (str): Ruta al directorio con calibration.npz. 
-                        Si es None, usa el directorio de este archivo
+                        Si es None, usa CALIB_PATH del config
 
     Returns:
         np.ndarray: Matriz intrínseca K de 3x3
     """
     if calib_dir is None:
-        calib_dir = os.path.dirname(os.path.abspath(__file__))
+        calib_dir = CALIB_PATH
     
-    calib_path = os.path.join(calib_dir, 'calibration/calibration.npz')
+    calib_path = os.path.join(calib_dir, 'calibration.npz')
     return load_calibration_npz(calib_path)
 
 def main():

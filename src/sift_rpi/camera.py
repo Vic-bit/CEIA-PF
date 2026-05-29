@@ -21,13 +21,25 @@ class Camera:
         sleep(1)  # Esperar a que la cámara se estabilice
         
         # Cargar matriz de intrínsecos calibrada
-        
         self.K = get_intrinsic_matrix_from_npz()
-        #self.K = np.array([[F, 0, WIDTH//2], [0, F, HEIGHT//2], [0, 0, 1]])
+        
+        # Cargar coeficientes de distorsión
+        from config import CALIB_PATH
+        import os
+        calib_file = os.path.join(CALIB_PATH, 'calibration.npz')
+        if os.path.exists(calib_file):
+            calib_data = np.load(calib_file)
+            self.dist_coeffs = calib_data['distCoeff']
+            print("[Camera] Coeficientes de distorsión cargados")
+        else:
+            print(f"[Camera] Advertencia: Archivo de calibración no encontrado en {calib_file}")
+            self.dist_coeffs = np.zeros(5)  # Fallback: sin distorsión
+        
         print("[Camera] Matriz K calibrada cargada")
 
     def read(self):
         """Lee un frame y lo devuelve en formato OpenCV (BGR).
+        Aplica corrección de distorsión si está disponible.
         Devuelve (ret, img) compatible con cv2.VideoCapture.
         """
         try:
@@ -35,7 +47,10 @@ class Camera:
             rgb_array = self.picam2.capture_array()
             # Convertir RGB a BGR para OpenCV
             bgr_array = cv2.cvtColor(rgb_array, cv2.COLOR_RGB2BGR)
-            return True, bgr_array
+            
+            # Aplicar corrección de distorsión
+            bgr_undistorted = cv2.undistort(bgr_array, self.K, self.dist_coeffs)
+            return True, bgr_undistorted
         except Exception as e:
             print(f"Error capturando frame: {e}")
             return False, None

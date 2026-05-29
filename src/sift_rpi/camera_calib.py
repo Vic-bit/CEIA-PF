@@ -35,8 +35,9 @@ def calibrate(showPics=True):
                         f"Extensiones buscadas: .jpeg, .jpg, .png, .bmp")
 
     # Initialize
-    nRows = 7
-    nCols = 7
+    from config import CHESSBOARD_ROWS, CHESSBOARD_COLS
+    nRows = CHESSBOARD_ROWS
+    nCols = CHESSBOARD_COLS
     termCriteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     worldPtsCur = np.zeros((nRows*nCols, 3), np.float32)
     worldPtsCur[:, :2] = np.mgrid[0:nRows, 0:nCols].T.reshape(-1, 2)
@@ -44,6 +45,7 @@ def calibrate(showPics=True):
     imgPtsList = []
 
     # Find Corners
+    img_shape = None  # Capturar el shape de la primera imagen válida
     for curImgPath in imgPathList:
         imgBGR = cv.imread(curImgPath)
         if imgBGR is None:
@@ -51,6 +53,11 @@ def calibrate(showPics=True):
             continue
             
         imgGray = cv.cvtColor(imgBGR, cv.COLOR_BGR2GRAY)
+        
+        # Capturar shape de la primera imagen válida
+        if img_shape is None:
+            img_shape = imgGray.shape[::-1]  # (height, width) -> (width, height)
+        
         cornersFound, cornersOrg = cv.findChessboardCorners(imgGray, (nRows, nCols), None)
 
         if cornersFound:
@@ -66,11 +73,14 @@ def calibrate(showPics=True):
 
     if len(imgPtsList) == 0:
         raise ValueError("No se detectaron esquinas de tablero en ninguna imagen.")
+    
+    if img_shape is None:
+        raise ValueError("No se pudo determinar el tamaño de las imágenes.")
 
     # Calibrate
     repError, camMatrix, distCoeff, rvecs, tvecs = cv.calibrateCamera(worldPtsList, 
                                                                      imgPtsList, 
-                                                                     imgGray.shape[::-1], 
+                                                                     img_shape, 
                                                                      None, 
                                                                      None)
     print('Camera Matrix: \n', camMatrix)
