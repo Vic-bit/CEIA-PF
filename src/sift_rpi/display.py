@@ -184,14 +184,18 @@ class MainWindow(QMainWindow):
         self.lbl_motor_b_val.setText(f"{value}%")
 
     def update_frame_display(self, img, keypoints):
-        """Actualiza la visualización del frame con los keypoints en escala de grises."""
+        """Actualiza la visualización del frame con los keypoints.
+        Procesa en grayscale pero muestra en RGB con keypoints verdes para mejor contraste.
+        """
         disp = cv2.resize(img, (WIDTH, HEIGHT)).copy()
+        # Convertir grayscale a BGR para poder mostrar puntos verdes
+        disp_bgr = cv2.cvtColor(disp, cv2.COLOR_GRAY2BGR)
         
         for x, y in keypoints.astype(int):
-            cv2.circle(disp, (x, y), 2, 255, -1)  # Blanco en grayscale
+            cv2.circle(disp_bgr, (x, y), 2, (0, 255, 0), -1)  # Verde brillante
         
-        h, w = disp.shape[:2]
-        qimg = QImage(disp.data, w, h, w, QImage.Format_Grayscale8)
+        h, w, _ = disp_bgr.shape
+        qimg = QImage(disp_bgr.data, w, h, 3 * w, QImage.Format_RGB888).rgbSwapped()
         self.video_label.setPixmap(QPixmap.fromImage(qimg))
 
     def update_trajectory(self, x, z):
