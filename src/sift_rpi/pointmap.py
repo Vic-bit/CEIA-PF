@@ -2,14 +2,15 @@
 import numpy as np
 
 from features import Frame
+from config import POINT_MERGE_THRESHOLD, POINT_Z_MIN, POINT_Z_MAX
 
 class Map(object):
     """Clase que representa el mapa 3D construido por el SLAM"""
     def __init__(self):
         self.frames = []  # Frames de la cámara
         self.points = []  # Puntos 3D del mapa
-    # TODO Agregar a config threshold
-    def add_or_update_point(self, pt: np.array, frame: Frame, idx: int, threshold=4.0) -> np.array:
+    
+    def add_or_update_point(self, pt: np.array, frame: Frame, idx: int, threshold=None) -> np.array:
         """
         Si existe un punto en el mapa cercano a 'pt' (dentro de 'threshold'),
         se añade la observación; si no, se crea un nuevo punto.
@@ -19,18 +20,29 @@ class Map(object):
             frame (Frame): Frame donde se observa el punto
             idx (int): Índice del keypoint en el frame
             threshold (float): Distancia máxima para considerar el punto como existente
+                             Si es None, usa POINT_MERGE_THRESHOLD del config
 
         Returns:
             Point: El punto 3D añadido o actualizado
         """
+        if threshold is None:
+            threshold = POINT_MERGE_THRESHOLD
         pt_xyz = pt[:3]  # Solo X, Y, Z
         
         # Buscar punto existente cercano
         for p in self.points:
             p_xyz = p.pt[:3]
             if np.linalg.norm(pt_xyz - p_xyz) < threshold:
-                #p.add_observation(frame, idx)
+                p.add_observation(frame, idx)  # ✓ Agregar observación al punto existente
                 return p
+        
+        # Aplicar límite de puntos en el mapa (para no saturar RPi)
+        from config import MAX_POINTS_IN_MAP
+        if len(self.points) >= MAX_POINTS_IN_MAP:
+            # Eliminar el punto con menos observaciones (menos importante)
+            self.points.sort(key=lambda p: len(p.frames))
+            removed_point = self.points.pop(0)
+            print(f"🗑️  Evicted point with {len(removed_point.frames)} observations (map full at {MAX_POINTS_IN_MAP})")
         
         # Si no se encuentra, se crea un nuevo punto
         new_point = Point(self, pt)
@@ -80,9 +92,9 @@ class Point(object):
         frame_ids = [f.id for f in self.frames]
         if len(set(frame_ids)) < 2:  # Observaciones del mismo frame
             return False
-        # TODO Agregar a config Zmin y Zmax
-        # El punto debe tener una profundidad razonable
-        if abs(self.pt[2]) < 0.1 or abs(self.pt[2]) > 1000:  # Z muy pequeño o muy grande
+        
+        # El punto debe tener una profundidad razonable (usando config)
+        if abs(self.pt[2]) < POINT_Z_MIN or abs(self.pt[2]) > POINT_Z_MAX:
             return False
             
         return True

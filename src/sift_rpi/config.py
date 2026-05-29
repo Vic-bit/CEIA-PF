@@ -15,6 +15,17 @@ F=600
 MIN_TRANSLATION = 0.02
 TURN_REDUCTION = 20   # % que reduce al girar
 
+# Scale & Constraint (Option A: Fixed camera height)
+CAMERA_HEIGHT = 0.089  # metros (89mm above ground plane)
+POINT_MERGE_THRESHOLD = 4.0  # pixels/meters (empirical value, configurable per robot)
+POINT_Z_MIN = 0.05  # minimum depth (m)
+POINT_Z_MAX = 50.0  # maximum depth (m)
+CHESSBOARD_ROWS = 7
+CHESSBOARD_COLS = 7
+SCALE_CLAMP_MIN = 0.01  # m (minimum realistic scale)
+SCALE_CLAMP_MAX = 2.0  # m (maximum realistic scale for RPi robot)
+SOFT_CONSTRAINT_ALPHA = 0.95  # blending factor (1.0 = hard constraint, 0.5 = 50% correction)
+
 # Extractor - SELECTIVO PARA EVITAR SATURACIÓN
 MIN_PIXEL_DISP = 1.0
 MIN_MATCHES = 6  # Mínimo decente para SIFT - no bajar más
@@ -27,8 +38,8 @@ PWM_CH0 = 0
 PWM_CH1 = 1
 FREQ =1000
 INIT_DUTY = 65
-PWM_FORWARD_DUTY_A = 55
-PWM_FORWARD_DUTY_B = 55
+PWM_FORWARD_DUTY_A = 70
+PWM_FORWARD_DUTY_B = 60
 PWM_BACKWARD_DUTY_A = 55
 PWM_BACKWARD_DUTY_B = 50
 PWM_TURN_DUTY = 40
@@ -43,7 +54,7 @@ SLIDER_MIN = 0
 SLIDER_MAX = 100
 
 # Plot limits - SIMÉTRICOS Y CENTRADOS EN EL ROBOT (ZOOM)
-PLOT_SIZE = 50
+PLOT_SIZE = 100
 PLOT_X_MIN = -PLOT_SIZE
 PLOT_X_MAX = PLOT_SIZE
 PLOT_Z_MIN = -PLOT_SIZE

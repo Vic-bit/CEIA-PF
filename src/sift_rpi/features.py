@@ -5,6 +5,26 @@ import numpy as np
 from config import SIFT_N_FEATURES
 ORB_N_FEATURES = SIFT_N_FEATURES  # Usar el mismo número de features para ORB en RPi
 
+# Global cache para ORB detector y BFMatcher (evita re-instanciación en cada frame)
+_orb_detector = None
+_bf_matcher = None
+
+
+def get_orb_detector():
+    """Obtiene el detector ORB global (singleton pattern)."""
+    global _orb_detector
+    if _orb_detector is None:
+        _orb_detector = cv2.ORB_create(nfeatures=ORB_N_FEATURES)
+    return _orb_detector
+
+
+def get_bf_matcher():
+    """Obtiene el matcher BF global (singleton pattern)."""
+    global _bf_matcher
+    if _bf_matcher is None:
+        _bf_matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+    return _bf_matcher
+
 """
 def extract(img: np.ndarray):
     Obtiene puntos de interés y sus descriptores de una imagen img.
@@ -50,9 +70,8 @@ def extract(img: np.ndarray):
     # Convertir a escala de grises
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Usar ORB (más rápido en Raspberry Pi)
-    # CORRECCIÓN: cv2.ORB_create() en lugar de cv2.ORB()
-    orb = cv2.ORB_create(nfeatures=ORB_N_FEATURES)
+    # Usar ORB detector cacheado (evita re-instanciación)
+    orb = get_orb_detector()
     
     # Detectar keypoints
     kps = orb.detect(gray_img, None)
@@ -142,8 +161,8 @@ def match_frames(f1, f2,
     if f1.des is None or f2.des is None:
         return np.array([], dtype=int), np.array([], dtype=int), np.eye(4)
     
-    # BFMatcher con HAMMING para ORB (descriptores binarios)
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+    # BFMatcher cacheado con HAMMING para ORB (descriptores binarios)
+    bf = get_bf_matcher()
     
     # KNN matching (k=2 para ratio test)
     knn = bf.knnMatch(f1.des, f2.des, k=2)
