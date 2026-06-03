@@ -93,7 +93,8 @@ class Point(object):
         if len(set(frame_ids)) < 2:  # Observaciones del mismo frame
             return False
         
-        # El punto debe tener una profundidad razonable (usando config)
+        # El punto debe tener una profundidad razonable (sin restricción dinámica)
+        # El filtro dinámico se aplica en filter_points_behind_camera() durante triangulación
         if abs(self.pt[2]) < POINT_Z_MIN or abs(self.pt[2]) > POINT_Z_MAX:
             return False
             

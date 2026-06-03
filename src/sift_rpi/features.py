@@ -2,8 +2,7 @@
 import cv2
 import numpy as np
 
-from config import SIFT_N_FEATURES
-ORB_N_FEATURES = SIFT_N_FEATURES  # Usar el mismo número de features para ORB en RPi
+from config import ORB_N_FEATURES
 
 # Global cache para ORB detector y BFMatcher (evita re-instanciación en cada frame)
 _orb_detector = None
@@ -41,7 +40,7 @@ def extract(img: np.ndarray):
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Usar SIFT (mucho más robusto que ORB para SLAM)
-    sift = cv2.ORB(nfeatures=SIFT_N_FEATURES)
+    sift = cv2.ORB(nfeatures=ORB_N_FEATURES)
     kps = sift.detect(gray_img, None)
     kps, des = sift.compute(gray_img, kps)
 

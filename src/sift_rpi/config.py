@@ -1,7 +1,7 @@
 # config.py - OPTIMIZADO PARA RASPBERRY PI CON TRACKING SUAVE
 
 # ORB (mucho más rápido que SIFT en RPi)
-SIFT_N_FEATURES = 250  # Más features para mejor tracking en giros
+ORB_N_FEATURES = 550  # Aumentado: más features = más puntos capturados en mapa
 
 # Path
 CALIB_PATH = "/home/visualslam/PF/Github/CEIA-PF/src/sift_rpi/calibration"
@@ -17,9 +17,9 @@ TURN_REDUCTION = 20   # % que reduce al girar
 
 # Scale & Constraint (Option A: Fixed camera height)
 CAMERA_HEIGHT = 0.089  # metros (89mm above ground plane)
-POINT_MERGE_THRESHOLD = 4.0  # pixels/meters (empirical value, configurable per robot)
+POINT_MERGE_THRESHOLD = 4.0  # REDUCIDO: 4.0 era excesivo, fusionaba puntos lejanos en uno
 POINT_Z_MIN = 0.05  # minimum depth (m)
-POINT_Z_MAX = 50.0  # maximum depth (m)
+POINT_Z_MAX = 1000.0  # maximum depth (m) - sin límite práctico, fallback si robot_position=None
 CHESSBOARD_ROWS = 7
 CHESSBOARD_COLS = 7
 SCALE_CLAMP_MIN = 0.01  # m (minimum realistic scale)
@@ -29,7 +29,7 @@ SOFT_CONSTRAINT_ALPHA = 0.95  # blending factor (1.0 = hard constraint, 0.5 = 50
 # Extractor - SELECTIVO PARA EVITAR SATURACIÓN
 MIN_PIXEL_DISP = 1.0
 MIN_MATCHES = 6  # Mínimo decente para SIFT - no bajar más
-MAX_POINTS_IN_MAP = 200  # Límite muy agresivo para no saturar RPi
+MAX_POINTS_IN_MAP = 750  # Límite muy agresivo para no saturar RPi
 
 # Raspberry Pi I/O
 IN1, IN2, IN3, IN4 = 5, 6, 23, 24
@@ -38,11 +38,11 @@ PWM_CH0 = 0
 PWM_CH1 = 1
 FREQ =1000
 INIT_DUTY = 65
-PWM_FORWARD_DUTY_A = 70
-PWM_FORWARD_DUTY_B = 60
-PWM_BACKWARD_DUTY_A = 55
-PWM_BACKWARD_DUTY_B = 50
-PWM_TURN_DUTY = 40
+PWM_FORWARD_DUTY_A = 67
+PWM_FORWARD_DUTY_B = 64
+PWM_BACKWARD_DUTY_A = 65
+PWM_BACKWARD_DUTY_B = 60
+PWM_TURN_DUTY = 50
 
 
 # Display - OPTIMIZADO PARA TRACKING SUAVE

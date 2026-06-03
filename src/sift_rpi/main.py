@@ -10,7 +10,7 @@ from display import MainWindow
 from features import Frame, match_frames, add_ones
 from pointmap import Map
 from motor_controller import MotorController
-from config import WIDTH, HEIGHT, TIMER_INTERVAL_MS, SKIP_RATE, MIN_TRANSLATION
+from config import WIDTH, HEIGHT, TIMER_INTERVAL_MS, SKIP_RATE, MIN_TRANSLATION, POINT_Z_MIN, POINT_Z_MAX
 
 signal.signal(signal.SIGINT, lambda *args: sys.exit(0))
 signal.signal(signal.SIGTERM, lambda *args: sys.exit(0))
@@ -175,8 +175,8 @@ def triangulate(pose1, pose2, pts1, pts2):
 
 def filter_points_behind_camera(points, 
                                 cam_pose, 
-                                z_min_threshold=0.05,    # MÁS BAJO
-                                z_max_threshold=50.0,    # MÁS ALTO
+                                z_min_threshold=POINT_Z_MIN,    # Bajo: capturar más cercanos
+                                z_max_threshold=30,    # AUMENTADO: capturar más lejanos
                                 xy_threshold=25.0):      # MÁS PERMISIVO
     """
     Filtra puntos - VERSIÓN MÁS PERMISIVA

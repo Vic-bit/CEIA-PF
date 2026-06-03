@@ -21,7 +21,7 @@ def test_initialization():
         from motor_controller import MotorController
         from features import extract, match_frames, Frame
         from pointmap import Map
-        from config import WIDTH, HEIGHT, TIMER_INTERVAL_MS, SKIP_RATE, SIFT_N_FEATURES
+        from config import WIDTH, HEIGHT, TIMER_INTERVAL_MS, SKIP_RATE, ORB_N_FEATURES
         print("✅ Todos los módulos importados correctamente")
     except Exception as e:
         print(f"❌ Error en imports: {e}")
@@ -32,7 +32,7 @@ def test_initialization():
     print(f"  - Resolución: {WIDTH}x{HEIGHT}")
     print(f"  - Timer: {TIMER_INTERVAL_MS}ms")
     print(f"  - Skip rate: {SKIP_RATE}")
-    print(f"  - SIFT features: {SIFT_N_FEATURES}")
+    print(f"  - SIFT features: {ORB_N_FEATURES}")
     print("✅ Configuración correcta")
     
     # Test 3: MotorController
