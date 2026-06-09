@@ -19,6 +19,10 @@ class MotorController:
         self.pwm_ena.start(INIT_DUTY)
         self.pwm_enb.start(INIT_DUTY)
         
+        # Almacenar duty cycle actual (se actualiza solo mediante sliders)
+        self.current_duty_ena = INIT_DUTY
+        self.current_duty_enb = INIT_DUTY
+        
         # Inicializar GPIO
         self.chip = gpiod.Chip('gpiochip4')
         self.lines = {}
@@ -29,51 +33,89 @@ class MotorController:
     
     def set_duty_ena(self, duty):
         """Establece el duty cycle del motor A (ENA)."""
+        self.current_duty_ena = duty
         self.pwm_ena.change_duty_cycle(duty)
     
     def set_duty_enb(self, duty):
         """Establece el duty cycle del motor B (ENB)."""
+        self.current_duty_enb = duty
         self.pwm_enb.change_duty_cycle(duty)
     
-    def forward(self):
-        """Mueve el robot hacia adelante."""
+    def forward(self, duty_a=None, duty_b=None):
+        """Mueve el robot hacia adelante.
+        
+        Args:
+            duty_a: Duty cycle Motor A (ENA). Si es None, usa current_duty_ena
+            duty_b: Duty cycle Motor B (ENB). Si es None, usa current_duty_enb
+        """
         print("forward")
+        if duty_a is not None:
+            self.current_duty_ena = duty_a
+        if duty_b is not None:
+            self.current_duty_enb = duty_b
+        
         self.lines[IN1].set_value(1)
         self.lines[IN2].set_value(0)
         self.lines[IN3].set_value(1)
         self.lines[IN4].set_value(0)
-        self.pwm_ena.change_duty_cycle(PWM_FORWARD_DUTY_A)
-        self.pwm_enb.change_duty_cycle(PWM_FORWARD_DUTY_B)
+        self.pwm_ena.change_duty_cycle(self.current_duty_ena)
+        self.pwm_enb.change_duty_cycle(self.current_duty_enb)
     
-    def backward(self):
-        """Mueve el robot hacia atrás."""
+    def backward(self, duty_a=None, duty_b=None):
+        """Mueve el robot hacia atrás.
+        
+        Args:
+            duty_a: Duty cycle Motor A (ENA). Si es None, usa current_duty_ena
+            duty_b: Duty cycle Motor B (ENB). Si es None, usa current_duty_enb
+        """
         print("backward")
+        if duty_a is not None:
+            self.current_duty_ena = duty_a
+        if duty_b is not None:
+            self.current_duty_enb = duty_b
+        
         self.lines[IN1].set_value(0)
         self.lines[IN2].set_value(1)
         self.lines[IN3].set_value(0)
         self.lines[IN4].set_value(1)
-        self.pwm_ena.change_duty_cycle(PWM_BACKWARD_DUTY_A)
-        self.pwm_enb.change_duty_cycle(PWM_BACKWARD_DUTY_B)
+        self.pwm_ena.change_duty_cycle(self.current_duty_ena)
+        self.pwm_enb.change_duty_cycle(self.current_duty_enb)
 
-    def turn_right(self):
-        """Gira el robot a la derecha."""
+    def turn_right(self, duty=None):
+        """Gira el robot a la derecha.
+        
+        Args:
+            duty: Duty cycle para ambos motores. Si es None, usa current_duty_ena
+        """
         print("turn right")
+        if duty is not None:
+            self.current_duty_ena = duty
+            self.current_duty_enb = duty
+        
         self.lines[IN1].set_value(1)
         self.lines[IN2].set_value(0)
         self.lines[IN3].set_value(0)
         self.lines[IN4].set_value(1)
-        self.pwm_ena.change_duty_cycle(PWM_TURN_DUTY)
-        self.pwm_enb.change_duty_cycle(PWM_TURN_DUTY)
+        self.pwm_ena.change_duty_cycle(self.current_duty_ena)
+        self.pwm_enb.change_duty_cycle(self.current_duty_enb)
     
-    def turn_left(self):
-        """Gira el robot a la izquierda."""
+    def turn_left(self, duty=None):
+        """Gira el robot a la izquierda.
+        
+        Args:
+            duty: Duty cycle para ambos motores. Si es None, usa current_duty_ena
+        """
         print("turn left")
+        if duty is not None:
+            self.current_duty_ena = duty
+            self.current_duty_enb = duty
+        
         self.lines[IN1].set_value(0)
         self.lines[IN2].set_value(1)
         self.lines[IN3].set_value(1)
         self.lines[IN4].set_value(0)
-        self.pwm_ena.change_duty_cycle(PWM_TURN_DUTY)
-        self.pwm_enb.change_duty_cycle(PWM_TURN_DUTY)
+        self.pwm_ena.change_duty_cycle(self.current_duty_ena)
+        self.pwm_enb.change_duty_cycle(self.current_duty_enb)
     
     def stop(self):
         """Detiene todos los motores."""

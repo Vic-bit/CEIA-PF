@@ -8,7 +8,12 @@ from PyQt5.QtWidgets import (
     QFrame, QGridLayout, QGroupBox, QFormLayout, QSlider
 )
 from PyQt5.QtGui import QImage, QPixmap
-from config import WIDTH, HEIGHT, PLOT_X_MIN, PLOT_X_MAX, PLOT_Z_MIN, PLOT_Z_MAX
+from config import (
+    WIDTH, HEIGHT, PLOT_X_MIN, PLOT_X_MAX, PLOT_Z_MIN, PLOT_Z_MAX,
+    PWM_FORWARD_DUTY_A, PWM_FORWARD_DUTY_B,
+    PWM_BACKWARD_DUTY_A, PWM_BACKWARD_DUTY_B,
+    PWM_TURN_DUTY
+)
 
 
 
@@ -70,83 +75,135 @@ class MainWindow(QMainWindow):
         # === CONTROLES DE MOVIMIENTO ===
         movement_group = QGroupBox("Movimiento (WSAD)")
         movement_layout = QGridLayout(movement_group)
+        movement_layout.setSpacing(5)  # Reducir espacio entre botones
+        movement_layout.setContentsMargins(5, 5, 5, 5)  # Reducir margen
         
         # Botón W (adelante)
-        self.btn_forward = QtWidgets.QPushButton("W - Adelante")
-        self.btn_forward.setFixedSize(120, 50)
+        self.btn_forward = QtWidgets.QPushButton("W\nAdelante")
+        self.btn_forward.setFixedSize(70, 40)
+        self.btn_forward.clicked.connect(lambda: self._handle_movement(self.motor_ctrl.forward, 'forward'))
         movement_layout.addWidget(self.btn_forward, 0, 1)
         
         # Botón A (izquierda)
-        self.btn_left = QtWidgets.QPushButton("A - Izquierda")
-        self.btn_left.setFixedSize(120, 50)
+        self.btn_left = QtWidgets.QPushButton("A\nIzq")
+        self.btn_left.setFixedSize(70, 40)
+        self.btn_left.clicked.connect(lambda: self._handle_movement(self.motor_ctrl.turn_left, 'turn_left'))
         movement_layout.addWidget(self.btn_left, 1, 0)
         
         # Botón S (atrás)
-        self.btn_backward = QtWidgets.QPushButton("S - Atrás")
-        self.btn_backward.setFixedSize(120, 50)
+        self.btn_backward = QtWidgets.QPushButton("S\nAtrás")
+        self.btn_backward.setFixedSize(70, 40)
+        self.btn_backward.clicked.connect(lambda: self._handle_movement(self.motor_ctrl.backward, 'backward'))
         movement_layout.addWidget(self.btn_backward, 1, 1)
         
         # Botón D (derecha)
-        self.btn_right = QtWidgets.QPushButton("D - Derecha")
-        self.btn_right.setFixedSize(120, 50)
+        self.btn_right = QtWidgets.QPushButton("D\nDer")
+        self.btn_right.setFixedSize(70, 40)
+        self.btn_right.clicked.connect(lambda: self._handle_movement(self.motor_ctrl.turn_right, 'turn_right'))
         movement_layout.addWidget(self.btn_right, 1, 2)
         
         # Botón E (detener)
-        self.btn_stop = QtWidgets.QPushButton("E - DETENER")
-        self.btn_stop.setFixedSize(120, 50)
+        self.btn_stop = QtWidgets.QPushButton("E\nDETENER")
+        self.btn_stop.setFixedSize(70, 40)
         self.btn_stop.setStyleSheet("background-color: red; color: white; font-weight: bold;")
+        self.btn_stop.clicked.connect(self.motor_ctrl.stop)
         movement_layout.addWidget(self.btn_stop, 2, 1)
         
         control_layout.addWidget(movement_group)
         
-        # === CONTROL DE VELOCIDAD ===
-        speed_group = QGroupBox("Velocidad Motor A (ENA)")
-        speed_layout = QFormLayout(speed_group)
+        # === CONTROL DE VELOCIDAD - FORWARD ===
+        forward_group = QGroupBox("Forward (W)")
+        forward_layout = QFormLayout(forward_group)
         
-        self.slider_motor_a = QSlider(Qt.Horizontal)
-        self.slider_motor_a.setMinimum(0)
-        self.slider_motor_a.setMaximum(100)
-        self.slider_motor_a.setValue(50)
-        self.slider_motor_a.setTickPosition(QSlider.TicksBelow)
-        self.slider_motor_a.setTickInterval(10)
-        self.lbl_motor_a_val = QLabel("50%")
-        self.lbl_motor_a_val.setAlignment(Qt.AlignCenter)
+        # Forward Motor A
+        self.slider_forward_a = QSlider(Qt.Horizontal)
+        self.slider_forward_a.setMinimum(0)
+        self.slider_forward_a.setMaximum(100)
+        self.slider_forward_a.setValue(PWM_FORWARD_DUTY_A)
+        self.slider_forward_a.setTickPosition(QSlider.TicksBelow)
+        self.slider_forward_a.setTickInterval(10)
+        self.lbl_forward_a_val = QLabel(f"{PWM_FORWARD_DUTY_A}%")
+        self.lbl_forward_a_val.setAlignment(Qt.AlignCenter)
+        self.slider_forward_a.valueChanged.connect(lambda v: self._update_label(self.lbl_forward_a_val, v))
         
-        self.slider_motor_a.valueChanged.connect(lambda v: self._update_motor_a_label(v))
-        self.slider_motor_a.valueChanged.connect(lambda v: self.motor_ctrl.set_duty_ena(v))
+        forward_layout.addRow("Motor A (ENA):", self.slider_forward_a)
+        forward_layout.addRow("Valor:", self.lbl_forward_a_val)
         
-        speed_layout.addRow("Duty Cycle ENA:", self.slider_motor_a)
-        speed_layout.addRow("Valor:", self.lbl_motor_a_val)
+        # Forward Motor B
+        self.slider_forward_b = QSlider(Qt.Horizontal)
+        self.slider_forward_b.setMinimum(0)
+        self.slider_forward_b.setMaximum(100)
+        self.slider_forward_b.setValue(PWM_FORWARD_DUTY_B)
+        self.slider_forward_b.setTickPosition(QSlider.TicksBelow)
+        self.slider_forward_b.setTickInterval(10)
+        self.lbl_forward_b_val = QLabel(f"{PWM_FORWARD_DUTY_B}%")
+        self.lbl_forward_b_val.setAlignment(Qt.AlignCenter)
+        self.slider_forward_b.valueChanged.connect(lambda v: self._update_label(self.lbl_forward_b_val, v))
         
-        control_layout.addWidget(speed_group)
+        forward_layout.addRow("Motor B (ENB):", self.slider_forward_b)
+        forward_layout.addRow("Valor:", self.lbl_forward_b_val)
         
-        # === CONTROL DE VELOCIDAD MOTOR B ===
-        speed_group_b = QGroupBox("Velocidad Motor B (ENB)")
-        speed_layout_b = QFormLayout(speed_group_b)
+        control_layout.addWidget(forward_group)
         
-        self.slider_motor_b = QSlider(Qt.Horizontal)
-        self.slider_motor_b.setMinimum(0)
-        self.slider_motor_b.setMaximum(100)
-        self.slider_motor_b.setValue(50)
-        self.slider_motor_b.setTickPosition(QSlider.TicksBelow)
-        self.slider_motor_b.setTickInterval(10)
-        self.lbl_motor_b_val = QLabel("50%")
-        self.lbl_motor_b_val.setAlignment(Qt.AlignCenter)
+        # === CONTROL DE VELOCIDAD - BACKWARD ===
+        backward_group = QGroupBox("Backward (S)")
+        backward_layout = QFormLayout(backward_group)
         
-        self.slider_motor_b.valueChanged.connect(lambda v: self._update_motor_b_label(v))
-        self.slider_motor_b.valueChanged.connect(lambda v: self.motor_ctrl.set_duty_enb(v))
+        # Backward Motor A
+        self.slider_backward_a = QSlider(Qt.Horizontal)
+        self.slider_backward_a.setMinimum(0)
+        self.slider_backward_a.setMaximum(100)
+        self.slider_backward_a.setValue(PWM_BACKWARD_DUTY_A)
+        self.slider_backward_a.setTickPosition(QSlider.TicksBelow)
+        self.slider_backward_a.setTickInterval(10)
+        self.lbl_backward_a_val = QLabel(f"{PWM_BACKWARD_DUTY_A}%")
+        self.lbl_backward_a_val.setAlignment(Qt.AlignCenter)
+        self.slider_backward_a.valueChanged.connect(lambda v: self._update_label(self.lbl_backward_a_val, v))
         
-        speed_layout_b.addRow("Duty Cycle ENB:", self.slider_motor_b)
-        speed_layout_b.addRow("Valor:", self.lbl_motor_b_val)
+        backward_layout.addRow("Motor A (ENA):", self.slider_backward_a)
+        backward_layout.addRow("Valor:", self.lbl_backward_a_val)
         
-        control_layout.addWidget(speed_group_b)
+        # Backward Motor B
+        self.slider_backward_b = QSlider(Qt.Horizontal)
+        self.slider_backward_b.setMinimum(0)
+        self.slider_backward_b.setMaximum(100)
+        self.slider_backward_b.setValue(PWM_BACKWARD_DUTY_B)
+        self.slider_backward_b.setTickPosition(QSlider.TicksBelow)
+        self.slider_backward_b.setTickInterval(10)
+        self.lbl_backward_b_val = QLabel(f"{PWM_BACKWARD_DUTY_B}%")
+        self.lbl_backward_b_val.setAlignment(Qt.AlignCenter)
+        self.slider_backward_b.valueChanged.connect(lambda v: self._update_label(self.lbl_backward_b_val, v))
+        
+        backward_layout.addRow("Motor B (ENB):", self.slider_backward_b)
+        backward_layout.addRow("Valor:", self.lbl_backward_b_val)
+        
+        control_layout.addWidget(backward_group)
+        
+        # === CONTROL DE VELOCIDAD - TURN ===
+        turn_group = QGroupBox("Turn (A/D)")
+        turn_layout = QFormLayout(turn_group)
+        
+        self.slider_turn = QSlider(Qt.Horizontal)
+        self.slider_turn.setMinimum(0)
+        self.slider_turn.setMaximum(100)
+        self.slider_turn.setValue(PWM_TURN_DUTY)
+        self.slider_turn.setTickPosition(QSlider.TicksBelow)
+        self.slider_turn.setTickInterval(10)
+        self.lbl_turn_val = QLabel(f"{PWM_TURN_DUTY}%")
+        self.lbl_turn_val.setAlignment(Qt.AlignCenter)
+        self.slider_turn.valueChanged.connect(lambda v: self._update_label(self.lbl_turn_val, v))
+        
+        turn_layout.addRow("Motor A/B:", self.slider_turn)
+        turn_layout.addRow("Valor:", self.lbl_turn_val)
+        
+        control_layout.addWidget(turn_group)
         
         # Espaciador
         control_layout.addStretch()
         
         # === SALIR ===
         self.btn_quit = QtWidgets.QPushButton("Q - SALIR")
-        self.btn_quit.setFixedSize(120, 50)
+        self.btn_quit.setFixedSize(70, 40)
         self.btn_quit.setStyleSheet("background-color: darkred; color: white; font-weight: bold;")
         control_layout.addWidget(self.btn_quit, alignment=Qt.AlignCenter)
         
@@ -163,25 +220,51 @@ class MainWindow(QMainWindow):
     def _setup_shortcuts(self):
         """Configura shortcuts de teclado."""
         # W - Adelante
-        QtWidgets.QShortcut(Qt.Key_W, self, self.motor_ctrl.forward)
+        QtWidgets.QShortcut(Qt.Key_W, self, lambda: self._handle_movement(self.motor_ctrl.forward, 'forward'))
         # A - Izquierda
-        QtWidgets.QShortcut(Qt.Key_A, self, self.motor_ctrl.turn_left)
+        QtWidgets.QShortcut(Qt.Key_A, self, lambda: self._handle_movement(self.motor_ctrl.turn_left, 'turn_left'))
         # S - Atrás
-        QtWidgets.QShortcut(Qt.Key_S, self, self.motor_ctrl.backward)
+        QtWidgets.QShortcut(Qt.Key_S, self, lambda: self._handle_movement(self.motor_ctrl.backward, 'backward'))
         # D - Derecha
-        QtWidgets.QShortcut(Qt.Key_D, self, self.motor_ctrl.turn_right)
+        QtWidgets.QShortcut(Qt.Key_D, self, lambda: self._handle_movement(self.motor_ctrl.turn_right, 'turn_right'))
         # E - Detener
         QtWidgets.QShortcut(Qt.Key_E, self, self.motor_ctrl.stop)
         # Q - Salir
         QtWidgets.QShortcut(Qt.Key_Q, self, self.close)
 
-    def _update_motor_a_label(self, value):
-        """Actualiza el label del motor A."""
-        self.lbl_motor_a_val.setText(f"{value}%")
+    def _update_label(self, label, value):
+        """Actualiza el label con el valor del slider."""
+        label.setText(f"{value}%")
 
-    def _update_motor_b_label(self, value):
-        """Actualiza el label del motor B."""
-        self.lbl_motor_b_val.setText(f"{value}%")
+    def _handle_movement(self, movement_func, movement_type):
+        """Ejecuta una función de movimiento con duty cycles del slider correspondiente.
+        
+        Args:
+            movement_func: Función del motor controller (forward, backward, turn_left, turn_right)
+            movement_type: String del tipo de movimiento ('forward', 'backward', 'turn_left', 'turn_right')
+        """
+        if movement_type == 'forward':
+            duty_a = self.slider_forward_a.value()
+            duty_b = self.slider_forward_b.value()
+            movement_func(duty_a, duty_b)
+        elif movement_type == 'backward':
+            duty_a = self.slider_backward_a.value()
+            duty_b = self.slider_backward_b.value()
+            movement_func(duty_a, duty_b)
+        elif movement_type == 'turn_left':
+            duty = self.slider_turn.value()
+            movement_func(duty)
+        elif movement_type == 'turn_right':
+            duty = self.slider_turn.value()
+            movement_func(duty)
+        
+        self._sync_sliders_with_motor()
+
+    def _sync_sliders_with_motor(self):
+        """Sincroniza los sliders con los valores actuales del motor controller.
+        Los sliders mantienen sus valores independientemente.
+        """
+        pass  # No es necesario sincronizar, cada slider es independiente
 
     def update_frame_display(self, img, keypoints):
         """Actualiza la visualización del frame con los keypoints.
