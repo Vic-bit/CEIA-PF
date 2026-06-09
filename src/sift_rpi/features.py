@@ -135,9 +135,9 @@ def denormalize(K, pt):
 
 
 def match_frames(f1, f2,
-                 ratio_thresh=0.75,      # CAMBIAR de 0.80 a 0.75
+                 ratio_thresh=0.85,      # CAMBIAR de 0.80 a 0.75
                  min_good_matches=6,     # CAMBIAR de 8 a 6
-                 ransac_thresh=0.8,      # CAMBIAR de 1.0 a 0.8
+                 ransac_thresh=1.5,      # CAMBIAR de 1.0 a 0.8
                  min_inliers=6):  
     """
     Empareja f1.des con f2.des usando ORB (descriptores binarios).

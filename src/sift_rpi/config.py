@@ -1,7 +1,7 @@
 # config.py - OPTIMIZADO PARA RASPBERRY PI CON TRACKING SUAVE
 
 # ORB (mucho más rápido que SIFT en RPi)
-ORB_N_FEATURES = 550  # Aumentado: más features = más puntos capturados en mapa
+ORB_N_FEATURES = 700  # Aumentado: más features = más puntos capturados en mapa
 
 # Path
 CALIB_PATH = "/home/visualslam/PF/Github/CEIA-PF/src/sift_rpi/calibration"
@@ -46,7 +46,7 @@ PWM_TURN_DUTY = 50
 
 
 # Display - OPTIMIZADO PARA TRACKING SUAVE
-SKIP_RATE = 2  # Procesa TODOS los frames (antes: 1 de cada 3)
+SKIP_RATE = 1  # Procesa TODOS los frames (antes: 1 de cada 3)
 GUI_UPDATE_MS = 200  # Actualiza UI cada 200ms
 TIMER_INTERVAL_MS = 50  # Procesa frame cada 40ms (~25 FPS) - NO usar 0
 
@@ -59,3 +59,9 @@ PLOT_X_MIN = -PLOT_SIZE
 PLOT_X_MAX = PLOT_SIZE
 PLOT_Z_MIN = -PLOT_SIZE
 PLOT_Z_MAX = PLOT_SIZE
+
+
+# Filtros de rotación
+MAX_ROTATION_ABSOLUTE_DEG = 45.0   # Límite físico absoluto por frame procesado
+MAX_ROTATION_FEW_MATCHES_DEG = 20.0  # Límite cuando hay pocos matches
+MIN_MATCHES_FOR_ROTATION_TRUST = 15.0  # Por debajo de esto la rotación es poco fiable

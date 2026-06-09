@@ -10,11 +10,17 @@ from display import MainWindow
 from features import Frame, match_frames, add_ones
 from pointmap import Map
 from motor_controller import MotorController
-from config import WIDTH, HEIGHT, TIMER_INTERVAL_MS, SKIP_RATE, MIN_TRANSLATION, POINT_Z_MIN, POINT_Z_MAX
+from config import WIDTH, HEIGHT, TIMER_INTERVAL_MS, SKIP_RATE, MIN_TRANSLATION, POINT_Z_MIN, POINT_Z_MAX, MAX_ROTATION_ABSOLUTE_DEG, MAX_ROTATION_FEW_MATCHES_DEG, MIN_MATCHES_FOR_ROTATION_TRUST
 
 signal.signal(signal.SIGINT, lambda *args: sys.exit(0))
 signal.signal(signal.SIGTERM, lambda *args: sys.exit(0))
 
+def get_rotation_angle(R):
+    """Calcula el ángulo de rotación en grados a partir de matriz de rotación."""
+    trace = np.clip(np.trace(R), -3, 3)
+    angle_rad = np.arccos((trace - 1) / 2)
+    angle_deg = np.degrees(angle_rad)
+    return angle_deg
 
 class VisualSLAM:
     def __init__(self, camera, motor_ctrl, display):
@@ -107,6 +113,33 @@ class VisualSLAM:
                 self.display.update_frame_display(img, frame.kps)
                 return
             
+            rotation_angle = get_rotation_angle(R)
+            print(f"📐 Frame {frame.id}: Ángulo de rotación detectado = {rotation_angle:.2f}°")
+
+
+            # ── FILTRO DE ROTACIÓN ──────────────────────────────────────────────────────
+            # Límite absoluto: ningún robot puede girar más de 45° en ~100ms
+            if rotation_angle > MAX_ROTATION_ABSOLUTE_DEG:
+                print(f"🔴 Frame {frame.id}: Rotación imposible ({rotation_angle:.2f}°) — DESCARTANDO FRAME")
+                f1.pose = f2.pose.copy()
+                self.frames_without_tracking += 1
+                self.display.update_frame_display(img, frame.kps)
+                return
+
+            # Con pocos matches la estimación de R es poco fiable → umbral más estricto
+            if rotation_angle > MAX_ROTATION_FEW_MATCHES_DEG and len(idx1) < MIN_MATCHES_FOR_ROTATION_TRUST:
+                print(f"⚠️ Frame {frame.id}: Rot sospechosa ({rotation_angle:.2f}°) con {len(idx1)} matches "
+                    f"— USANDO SOLO TRASLACIÓN")
+                # Conservar R del frame anterior, actualizar solo traslación
+                prev_R = f2.pose[:3, :3]
+                t_current = Rt[:3, 3]
+                Rt_safe = np.eye(4)
+                Rt_safe[:3, :3] = prev_R.T @ f2.pose[:3, :3]   # Delta R ≈ identidad
+                Rt_safe[:3, 3] = t_current
+                Rt = Rt_safe
+            # ────────────────────────────────────────────────────────────────────────────
+
+
             # ✅ TRACKING EXITOSO
             f1.pose = f2.pose.dot(Rt)  # Actualizar pose
             self.last_good_pose = f1.pose.copy()  # Guardar como buena
