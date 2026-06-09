@@ -19,3 +19,5 @@ __pycache__/
 notebooks/.ipynb_checkpoints
 
 CEIA_PF.egg-info/
+
+/Users/victordavidsilva/GitHub/CEIA-PF/src/slam/orb_rpi/voenv
